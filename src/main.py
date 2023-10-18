@@ -9,7 +9,16 @@ from src.model.Shift import Shift
 from src.model.Skill import Skill
 
 
-def main(days: List[Day], employees: List[Employee]):# -> Union[Dict[str, bool], None]:
+def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar]) -> Union[Dict[str, bool], None]:
+    solver = cp_model.CpSolver()
+    status = solver.Solve(model)
+    if status == cp_model.OPTIMAL or cp_model.FEASIBLE:
+        return {var: solver.Value(all_vars[var]) == 1 for var in all_vars}
+    else:
+        return None
+
+
+def main(days: List[Day], employees: List[Employee]) -> Union[Dict[str, bool], None]:
     model = cp_model.CpModel()
 
     # create all vars
@@ -24,15 +33,7 @@ def main(days: List[Day], employees: List[Employee]):# -> Union[Dict[str, bool],
 
     # add rule every shift needs all skills
     add_every_shift_skill_is_assigned(model, days, employees, all_vars)
-
-    solver = cp_model.CpSolver()
-    status = solver.Solve(model)
-
-    if status == cp_model.OPTIMAL or cp_model.FEASIBLE:
-        print("loesbar")
-        [print(f"{var}: {solver.Value(all_vars[var])}") for var in sorted(all_vars.keys())]
-    else:
-        print("nicht loesbar")
+    return get_model(model, all_vars)
 
 
 if __name__ == "__main__":
