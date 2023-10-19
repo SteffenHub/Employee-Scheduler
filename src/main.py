@@ -4,7 +4,7 @@ from Excel_interface import write_to_excel
 from RuleBuilder import add_every_shift_skill_is_assigned, add_one_employee_only_one_shift_per_day, \
     add_employee_cant_do_what_he_cant, add_employees_can_only_work_with_team_members, \
     add_one_employee_only_works_five_days_a_week, add_one_employee_works_the_same_shift_a_week, \
-    add_every_employee_have_two_shift_pause, add_shift_cycle
+    add_every_employee_have_two_shift_pause, add_shift_cycle, add_at_least_one_shift_manager_per_team_per_day
 from model.Input_data_creator import create_input_data
 from model.Team import Team
 from model.Week import Week
@@ -43,6 +43,7 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
     add_one_employee_works_the_same_shift_a_week(model, weeks, teams, all_vars)
     add_every_employee_have_two_shift_pause(model, weeks, teams, all_vars)
     add_shift_cycle(model, weeks, teams, all_vars)
+    add_at_least_one_shift_manager_per_team_per_day(model, weeks, teams, all_vars)
     model_result = get_model(model, all_vars)
     if model_result is not None:
         write_to_excel(model_result, teams, weeks)

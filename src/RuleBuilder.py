@@ -149,3 +149,15 @@ def add_shift_cycle(model: cp_model.CpModel, weeks: List[Week], teams: List[Team
                                for employee in team.employees]
                               ) == 0
                           ).OnlyEnforceIf(help_bool_var)
+
+
+def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
+                                           all_vars: Dict[str, cp_model.IntVar]):
+    for team in teams:
+        shift_manager = [employee for employee in team.employees if employee.is_shift_manager]
+        for week in weeks:
+            for day in week.days:
+                model.AddAtLeastOne([all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]
+                                     for employee in shift_manager
+                                     for shift in day.shifts
+                                     for needed_skill in shift.needed_skills])

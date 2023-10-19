@@ -1,8 +1,7 @@
-
 import re
 from typing import Dict, List
 
-from openpyxl.styles import PatternFill, Side, Border
+from openpyxl.styles import PatternFill, Side, Border, Font
 from openpyxl.workbook import Workbook
 
 from model.Team import Team
@@ -43,6 +42,10 @@ def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List
             sheet[f"C{row * 2}"] = str([str(skill) for skill in employee.skills]).replace("[", "").replace("]",
                                                                                                            "").replace(
                 "'", "")
+            if employee.is_shift_manager:
+                sheet[f"A{row * 2}"].font = Font(bold=True)
+                sheet[f"B{row * 2}"].font = Font(bold=True)
+                sheet[f"C{row * 2}"].font = Font(bold=True)
             for i in range(0, fill_to):
                 sheet[f"{columns[i]}{row * 2}"].fill = colors[str(team)]
             row = row + 1
@@ -60,7 +63,7 @@ def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List
             index = (j - 1)
             sheet[f"{columns[column]}{1}"] = wochentage[index]
             if week.days[index].name == "Sa" or week.days[index].name == "So":
-                for i in range(1, len([employee for team in teams for employee in team.employees])*2+1+1):
+                for i in range(1, len([employee for team in teams for employee in team.employees]) * 2 + 1 + 1):
                     sheet[f"{columns[column]}{i}"].fill = colors["weekend"]
                     sheet[f"{columns[column]}{i}"].border = thin_border
             column = column + 1
