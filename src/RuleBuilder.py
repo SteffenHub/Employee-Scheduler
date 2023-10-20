@@ -152,7 +152,7 @@ def add_shift_cycle(model: cp_model.CpModel, weeks: List[Week], teams: List[Team
 
 
 def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                           all_vars: Dict[str, cp_model.IntVar]):
+                                                    all_vars: Dict[str, cp_model.IntVar]):
     for team in teams:
         shift_manager = [employee for employee in team.employees if employee.is_shift_manager]
         for week in weeks:
@@ -161,3 +161,45 @@ def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, wee
                                      for employee in shift_manager
                                      for shift in day.shifts
                                      for needed_skill in shift.needed_skills])
+
+
+def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
+                                                  all_vars: Dict[str, cp_model.IntVar]):
+    maximize_list = []
+    for week in weeks:
+        for team in teams:
+            for employee in team.employees:
+                assignments: dict[str, List[cp_model.IntVar]] = {}
+                for day in week.days:
+                    for shift in day.shifts:
+                        for needed_skill in shift.needed_skills:
+                            if needed_skill not in assignments.keys():
+                                assignments[str(needed_skill)] = [
+                                    all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]]
+                            else:
+                                assignments[str(needed_skill)].append(
+                                    all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"])
+                assignments_sum: dict[str, cp_model.IntVar] = {}
+                for skill in assignments.keys():
+                    assignments_sum[skill] = model.NewIntVar(0, 10000,
+                                                             f"help_var_same_job_a_week_{week}_{team}_{employee}_{skill}")
+                    model.Add(assignments_sum[skill] == sum(assignments[skill]))
+                o_l = [] # or List
+                for skill in assignments_sum.keys():
+                    for i in range(1, 8):
+                        help_or = model.NewBoolVar(f"help_var_same_job_a_week_or_rule_{i}_{week}_{team}_{employee}_{skill}")
+                        model.Add(assignments_sum[skill] == i).OnlyEnforceIf(help_or)
+                        model.Add(assignments_sum[skill] != i).OnlyEnforceIf(help_or.Not())
+                        o_l.append(help_or)
+                help_sum = model.NewIntVar(0, 100000, f"help_var_same_job_a_week_or_rule_sum_{week}_{team}_{employee}")
+                model.Add(
+                    help_sum ==
+                    o_l[0] * 2 +
+                    o_l[1] * 16 +
+                    o_l[2] * 70 +
+                    o_l[3] * 200 +
+                    o_l[4] * 1690 +
+                    o_l[5] * 4000 +
+                    o_l[6] * 16000)
+                maximize_list.append(help_sum)
+    model.Maximize(sum(maximize_list))
