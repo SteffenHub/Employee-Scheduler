@@ -184,22 +184,7 @@ def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks
                     assignments_sum[skill] = model.NewIntVar(0, 10000,
                                                              f"help_var_same_job_a_week_{week}_{team}_{employee}_{skill}")
                     model.Add(assignments_sum[skill] == sum(assignments[skill]))
-                o_l = [] # or List
-                for skill in assignments_sum.keys():
-                    for i in range(1, 8):
-                        help_or = model.NewBoolVar(f"help_var_same_job_a_week_or_rule_{i}_{week}_{team}_{employee}_{skill}")
-                        model.Add(assignments_sum[skill] == i).OnlyEnforceIf(help_or)
-                        model.Add(assignments_sum[skill] != i).OnlyEnforceIf(help_or.Not())
-                        o_l.append(help_or)
-                help_sum = model.NewIntVar(0, 100000, f"help_var_same_job_a_week_or_rule_sum_{week}_{team}_{employee}")
-                model.Add(
-                    help_sum ==
-                    o_l[0] * 2 +
-                    o_l[1] * 16 +
-                    o_l[2] * 70 +
-                    o_l[3] * 200 +
-                    o_l[4] * 1690 +
-                    o_l[5] * 4000 +
-                    o_l[6] * 16000)
-                maximize_list.append(help_sum)
+                help_max_var = model.NewIntVar(0, 10000, f"help_var_same_job_a_week_max_var_{week}_{team}_{employee}")
+                model.AddMaxEquality(help_max_var, list(assignments_sum.values()))
+                maximize_list.append(help_max_var)
     model.Maximize(sum(maximize_list))
