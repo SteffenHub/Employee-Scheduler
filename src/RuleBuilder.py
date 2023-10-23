@@ -73,6 +73,30 @@ def add_one_employee_only_works_five_days_a_week(model: cp_model.CpModel, weeks:
                 ]))
 
 
+def add_one_employee_only_works_five_days_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
+                                                   all_vars: Dict[str, cp_model.IntVar]):
+    period = {}
+    i = 1
+    for week in weeks:
+        for day in week.days:
+            period[i] = {"week": week, "day": day}
+            i = i + 1
+
+    for team in teams:
+        for employee in team.employees:
+            unique_index = 0
+            for i in range(1, len(period)-4):
+                days_worked = []
+                for j in range(i, i + 6):
+                    [days_worked.append(
+                        all_vars[f"{period[j]['week']}_{period[j]['day']}_{shift}_{team}_{employee}_{needed_skill}"])
+                        for shift in period[j]['day'].shifts for needed_skill in shift.needed_skills]
+                help_int = model.NewIntVar(0, 1000, f"int_var_help_five_days_a_row_{team}_{employee}_{unique_index}")
+                unique_index = unique_index + 1
+                model.Add(help_int == sum(days_worked))
+                model.Add(help_int <= 5)
+
+
 def add_one_employee_works_the_same_shift_a_week(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
                                                  all_vars: Dict[str, cp_model.IntVar]):
     unique_key = 1
@@ -152,7 +176,7 @@ def add_shift_cycle(model: cp_model.CpModel, weeks: List[Week], teams: List[Team
 
 
 def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                           all_vars: Dict[str, cp_model.IntVar]):
+                                                    all_vars: Dict[str, cp_model.IntVar]):
     for team in teams:
         shift_manager = [employee for employee in team.employees if employee.is_shift_manager]
         for week in weeks:
