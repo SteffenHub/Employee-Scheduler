@@ -173,7 +173,7 @@ def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks
                 for day in week.days:
                     for shift in day.shifts:
                         for needed_skill in shift.needed_skills:
-                            if needed_skill not in assignments.keys():
+                            if str(needed_skill) not in assignments.keys():
                                 assignments[str(needed_skill)] = [
                                     all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]]
                             else:
@@ -186,7 +186,8 @@ def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks
                     model.Add(assignments_sum[skill] == sum(assignments[skill]))
                 help_max_var = model.NewIntVar(0, 10000, f"help_var_same_job_a_week_max_var_{week}_{team}_{employee}")
                 model.AddMaxEquality(help_max_var, list(assignments_sum.values()))
-                help_max_var_mult = model.NewIntVar(0, 100000, f"help_var_same_job_a_week_max_var_mult_{week}_{team}_{employee}")
-                model.Add(help_max_var_mult == 9 * help_max_var)
+                help_max_var_mult = model.NewIntVar(0, 100000,
+                                                    f"help_var_same_job_a_week_max_var_mult_{week}_{team}_{employee}")
+                model.AddMultiplicationEquality(help_max_var_mult, [help_max_var, help_max_var])
                 maximize_list.append(help_max_var_mult)
     model.Maximize(sum(maximize_list))
