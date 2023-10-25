@@ -13,10 +13,15 @@ from model.Week import Week
 
 def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar]) -> Union[Dict[str, bool], None]:
     solver = cp_model.CpSolver()
-    status = solver.Solve(model)
     solver.parameters.num_search_workers = 8
+    solver.parameters.max_time_in_seconds = 60.0
+    status = solver.Solve(model)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
+        if status == cp_model.OPTIMAL:
+            print("Optimal")
+        if status == cp_model.FEASIBLE:
+            print("Feasible")
         return {var: solver.Value(all_vars[var]) == 1 for var in all_vars.keys()}
     else:
         return None

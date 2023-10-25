@@ -210,5 +210,7 @@ def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week]
                 transitions.append(is_transition)
             transitions_sum = model.NewIntVar(0, len(weeks) * 7, f"transition_sum_{team}_{employee}")
             model.Add(transitions_sum == sum(transitions))
-            minimize_list.append(transitions_sum)
+            transitions_mul = model.NewIntVar(0, 10000, f"transition_mul_{team}_{employee}")
+            model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
+            minimize_list.append(transitions_mul)
     model.Minimize(sum(minimize_list))
