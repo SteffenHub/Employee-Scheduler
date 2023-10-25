@@ -187,6 +187,35 @@ def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, wee
                                      for needed_skill in shift.needed_skills])
 
 
+def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
+                                      all_vars: Dict[str, cp_model.IntVar]):
+    minimize_list = []
+    for team in teams:
+        for employee in team.employees:
+            work_days = []
+            for week in weeks:
+                for day in week.days:
+                    works = model.NewBoolVar(f"help_var_{team}_{employee}_works_on_{week}_{day}")
+                    possible_assignments = [all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]
+                                            for shift in day.shifts
+                                            for needed_skill in shift.needed_skills]
+                    model.Add(sum(possible_assignments) > 0).OnlyEnforceIf(works)
+                    model.Add(sum(possible_assignments) == 0).OnlyEnforceIf(works.Not())
+                    work_days.append(works)
+            transitions = []
+            for i in range(0, len(work_days) - 1):
+                is_transition = model.NewBoolVar(f"help_bool_var_transition_{team}_{employee}_{i}_{i + 1}")
+                model.Add(work_days[i] != work_days[i + 1]).OnlyEnforceIf(is_transition)
+                model.Add(work_days[i] == work_days[i + 1]).OnlyEnforceIf(is_transition.Not())
+                transitions.append(is_transition)
+            transitions_sum = model.NewIntVar(0, len(weeks) * 7, f"transition_sum_{team}_{employee}")
+            model.Add(transitions_sum == sum(transitions))
+            transitions_mul = model.NewIntVar(0, 10000, f"transition_mul_{team}_{employee}")
+            model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
+            minimize_list.append(transitions_mul)
+    model.Minimize(sum(minimize_list))
+
+
 def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
                                                   all_vars: Dict[str, cp_model.IntVar]):
     maximize_list = []
