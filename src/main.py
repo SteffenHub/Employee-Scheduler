@@ -53,9 +53,9 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
     add_every_employee_have_two_shift_pause(model, weeks, teams, all_vars)
     add_shift_cycle(model, weeks, teams, all_vars)
     add_at_least_one_shift_manager_per_team_per_day(model, weeks, teams, all_vars)
-    add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
     add_one_employee_only_works_five_days_in_a_row(model, weeks, teams, all_vars)
     add_employee_should_work_in_a_row(model, weeks, teams, all_vars)
+    add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
     print("All Rules added. Start Solver")
     model_result = get_model(model, all_vars)
     if model_result is not None:
