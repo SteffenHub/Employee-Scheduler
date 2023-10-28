@@ -6,7 +6,7 @@ from RuleBuilder import add_every_shift_skill_is_assigned, add_one_employee_only
     add_one_employee_only_works_five_days_a_week, add_one_employee_works_the_same_shift_a_week, \
     add_every_employee_have_two_shift_pause, add_shift_cycle, add_at_least_one_shift_manager_per_team_per_day, \
     add_one_employee_only_works_five_days_in_a_row, add_an_employee_should_do_the_same_job_a_week, \
-    add_employee_should_work_in_a_row
+    add_employee_should_work_in_a_row, add_employee_should_work_night_shifts_in_a_row
 
 from model.Input_data_creator import create_input_data
 from model.Team import Team
@@ -54,8 +54,10 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
     add_shift_cycle(model, weeks, teams, all_vars)
     add_at_least_one_shift_manager_per_team_per_day(model, weeks, teams, all_vars)
     add_one_employee_only_works_five_days_in_a_row(model, weeks, teams, all_vars)
-    add_employee_should_work_in_a_row(model, weeks, teams, all_vars)
-    add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
+    minimize_var_work_in_row = add_employee_should_work_in_a_row(model, weeks, teams, all_vars)
+    minimize_var_work_in_row_at_night = add_employee_should_work_night_shifts_in_a_row(model, weeks, teams, all_vars)
+    # add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
+    model.Minimize(minimize_var_work_in_row + minimize_var_work_in_row_at_night)
     print("All Rules added. Start Solver")
     model_result = get_model(model, all_vars)
     if model_result is not None:

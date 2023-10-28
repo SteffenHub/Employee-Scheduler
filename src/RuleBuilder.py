@@ -85,7 +85,7 @@ def add_one_employee_only_works_five_days_in_a_row(model: cp_model.CpModel, week
     for team in teams:
         for employee in team.employees:
             unique_index = 0
-            for i in range(1, len(period)-4):
+            for i in range(1, len(period) - 4):
                 days_worked = []
                 for j in range(i, i + 6):
                     [days_worked.append(
@@ -188,7 +188,7 @@ def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, wee
 
 
 def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                      all_vars: Dict[str, cp_model.IntVar]):
+                                      all_vars: Dict[str, cp_model.IntVar]) -> cp_model.IntVar:
     minimize_list = []
     for team in teams:
         for employee in team.employees:
@@ -203,17 +203,63 @@ def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week]
                     model.Add(sum(possible_assignments) == 0).OnlyEnforceIf(works.Not())
                     work_days.append(works)
             transitions = []
+            # create transition list
             for i in range(0, len(work_days) - 1):
                 is_transition = model.NewBoolVar(f"help_bool_var_transition_{team}_{employee}_{i}_{i + 1}")
                 model.Add(work_days[i] != work_days[i + 1]).OnlyEnforceIf(is_transition)
                 model.Add(work_days[i] == work_days[i + 1]).OnlyEnforceIf(is_transition.Not())
                 transitions.append(is_transition)
+            # add one more transition if employee works on first Monday.
+            # So it isn't better to work on first Monday to have fewer transitions
+            transitions.append(work_days[0])
             transitions_sum = model.NewIntVar(0, len(weeks) * 7, f"transition_sum_{team}_{employee}")
             model.Add(transitions_sum == sum(transitions))
             transitions_mul = model.NewIntVar(0, 10000, f"transition_mul_{team}_{employee}")
             model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
             minimize_list.append(transitions_mul)
-    model.Minimize(sum(minimize_list))
+    var_to_minimize = model.NewIntVar(0, 100000, f"minimize_sum_work_in_a_row")
+    model.Add(var_to_minimize == sum(minimize_list))
+    return var_to_minimize
+
+
+def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
+                                                   all_vars: Dict[str, cp_model.IntVar]) -> cp_model.IntVar:
+    minimize_list = []
+    for team in teams:
+        for employee in team.employees:
+            work_days_at_night = []
+            for week in weeks:
+                for day in week.days:
+                    works_in_night_shift = model.NewBoolVar(
+                        f"help_var_{team}_{employee}_works_in_night_shift_on_{week}_{day}")
+                    possible_night_assignments = [all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]
+                                                  for shift in day.shifts
+                                                  if shift.name == "N"
+                                                  for needed_skill in shift.needed_skills]
+                    model.Add(sum(possible_night_assignments) > 0).OnlyEnforceIf(works_in_night_shift)
+                    model.Add(sum(possible_night_assignments) == 0).OnlyEnforceIf(works_in_night_shift.Not())
+                    work_days_at_night.append(works_in_night_shift)
+            transitions_night = []
+            # create transition list
+            for i in range(0, len(work_days_at_night) - 1):
+                is_transition = model.NewBoolVar(
+                    f"help_bool_var_transition_in_night_shift_{team}_{employee}_{i}_{i + 1}")
+                model.Add(work_days_at_night[i] != work_days_at_night[i + 1]).OnlyEnforceIf(is_transition)
+                model.Add(work_days_at_night[i] == work_days_at_night[i + 1]).OnlyEnforceIf(is_transition.Not())
+                transitions_night.append(is_transition)
+            # add one more transition if employee works on first Monday.
+            # So it isn't better to work on first Monday to have fewer transitions
+            transitions_night.append(work_days_at_night[0])
+            transitions_sum = model.NewIntVar(0, len(weeks) * 7, f"transition_sum_night_shifts_{team}_{employee}")
+            model.Add(transitions_sum == sum(transitions_night))
+            transitions_mul = model.NewIntVar(0, 10000, f"transition_mul_night_shift_{team}_{employee}")
+            model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
+            transitions_mul_2 = model.NewIntVar(0, 10000, f"transition_mul2_night_shift_{team}_{employee}")
+            model.AddMultiplicationEquality(transitions_mul_2, [transitions_mul, transitions_mul])
+            minimize_list.append(transitions_mul_2)
+    var_to_minimize = model.NewIntVar(0, 100000, f"minimize_sum_work_in_a_row_night_shifts")
+    model.Add(var_to_minimize == sum(minimize_list))
+    return var_to_minimize
 
 
 def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
