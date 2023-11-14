@@ -1,5 +1,8 @@
+import time
 from typing import Dict, Union, List
 from ortools.sat.python import cp_model
+from ortools.sat.python.cp_model import CpSolverSolutionCallback
+
 from Excel_interface import write_to_excel
 from RuleBuilder import add_every_shift_skill_is_assigned, add_one_employee_only_one_shift_per_day, \
     add_employee_cant_do_what_he_cant, add_employees_can_only_work_with_team_members, \
@@ -14,11 +17,31 @@ from model.Team import Team
 from model.Week import Week
 
 
-def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar]) -> Union[Dict[str, bool], None]:
+class MySolutionPrinter(CpSolverSolutionCallback):
+    def __init__(self, transitions: cp_model.IntVar, night_transitions: cp_model.IntVar):
+        CpSolverSolutionCallback.__init__(self)
+        self.solution_count = 0
+        self.start_time = time.time()
+        self.transitions = transitions
+        self.night_transitions = night_transitions
+
+    def on_solution_callback(self) -> None:
+        print(
+            f"Solution {self.solution_count}, "
+            f"time = {time.time() - self.start_time} s, "
+            f"objective = {self.ObjectiveValue()}, "
+            f"transitions = {self.Value(self.transitions)}, "
+            f"night_transitions = {self.Value(self.night_transitions)}"
+        )
+        self.solution_count += 1
+
+
+def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar], transitions: cp_model.IntVar,
+              night_transitions: cp_model.IntVar) -> Union[Dict[str, bool], None]:
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 8
-    solver.parameters.max_time_in_seconds = 600.0
-    solution_printer = cp_model.ObjectiveSolutionPrinter()
+    solver.parameters.max_time_in_seconds = 60.0
+    solution_printer = MySolutionPrinter(transitions, night_transitions)
     status = solver.Solve(model, solution_printer)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
@@ -50,6 +73,7 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
                             var = model.NewBoolVar(key)
                             all_vars[key] = var
 
+    # Hard constraints
     add_every_shift_skill_is_assigned(model, weeks, teams, all_vars)
     add_one_employee_only_one_shift_per_day(model, weeks, teams, all_vars)
     add_employee_cant_do_what_he_cant(model, weeks, teams, all_vars)
@@ -60,6 +84,8 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
     add_shift_cycle(model, weeks, teams, all_vars)
     add_at_least_one_shift_manager_per_team_per_day(model, weeks, teams, all_vars)
     add_one_employee_only_works_five_days_in_a_row(model, weeks, teams, all_vars)
+
+    # Soft constrains
     minimize_var_work_in_row = add_employee_should_work_in_a_row(model, weeks, teams, all_vars, 3)
     minimize_var_work_in_row_at_night = add_employee_should_work_night_shifts_in_a_row(model, weeks, teams, all_vars, 7)
     minimize_var_same_night_shift_amount_per_employee = add_every_employee_should_do_same_amount_night_shifts(
@@ -70,7 +96,7 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
         minimize_var_work_in_row_at_night +
         minimize_var_same_night_shift_amount_per_employee)
     print("All Rules added. Start Solver")
-    model_result = get_model(model, all_vars)
+    model_result = get_model(model, all_vars, minimize_var_work_in_row, minimize_var_work_in_row_at_night)
     if model_result is not None:
         write_to_excel(model_result, teams, weeks)
     return model_result
