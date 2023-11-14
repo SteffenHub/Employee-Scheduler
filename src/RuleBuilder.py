@@ -250,7 +250,8 @@ def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, week
             # add one more transition if employee works on first Monday.
             # So it isn't better to work on first Monday to have fewer transitions
             transitions_night.append(work_days_at_night[0])
-            transitions_sum = model.NewIntVar(0, len(weeks) * 7 * cost, f"transition_sum_night_shifts_{team}_{employee}")
+            transitions_sum = model.NewIntVar(0, len(weeks) * 7 * cost,
+                                              f"transition_sum_night_shifts_{team}_{employee}")
             model.Add(transitions_sum == sum(transitions_night) * cost)
             transitions_mul = model.NewIntVar(0, 10000, f"transition_mul_night_shift_{team}_{employee}")
             model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
@@ -288,3 +289,28 @@ def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks
                 model.AddMultiplicationEquality(help_max_var_mult, [help_max_var, help_max_var])
                 maximize_list.append(help_max_var_mult)
     model.Maximize(sum(maximize_list))
+
+
+def add_every_employee_should_do_same_amount_night_shifts(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
+                                                          all_vars: Dict[str, cp_model.IntVar], cost: int):
+    night_shifts_per_employee_minimize_list: List[cp_model.IntVar] = []
+    max_minimize_value = 0
+    for team in teams:
+        for employee in team.employees:
+            night_shift_assignments = [all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]
+                                       for week in weeks
+                                       for day in week.days
+                                       for shift in day.shifts if shift == "N"
+                                       for needed_skill in shift.needed_skills]
+            night_shift_assignments_sum = model.NewIntVar(0, len(night_shift_assignments * cost),
+                                                          f"help_same_night_shift_amount_sum_{team}_{employee}")
+            night_shifts_per_employee_minimize_list.append(
+                night_shift_assignments_sum == sum(night_shift_assignments) * cost)
+            night_shift_assignments_mul = model.NewIntVar(0, len(night_shift_assignments * cost) ** 2,
+                                                          f"help_same_night_shift_amount_mul_{team}_{employee}")
+            model.AddMultiplicationEquality(night_shift_assignments_mul,
+                                            [night_shift_assignments_sum, night_shift_assignments_sum])
+            max_minimize_value = max_minimize_value + len(night_shift_assignments * cost) ** 2
+    minimize_value = model.NewIntVar(0, max_minimize_value, f"minimize_value_for_same_night_shift_amount")
+    model.Add(minimize_value == sum(night_shifts_per_employee_minimize_list))
+    return minimize_value
