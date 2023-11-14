@@ -17,7 +17,8 @@ def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar]) -> 
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 8
     solver.parameters.max_time_in_seconds = 600.0
-    status = solver.Solve(model)
+    solution_printer = cp_model.ObjectiveSolutionPrinter()
+    status = solver.Solve(model, solution_printer)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         if status == cp_model.OPTIMAL:
@@ -26,6 +27,10 @@ def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar]) -> 
             print("Feasible")
         return {var: solver.Value(all_vars[var]) == 1 for var in all_vars.keys()}
     else:
+        if status == cp_model.INFEASIBLE:
+            print("INFEASIBLE")
+        if status == cp_model.UNKNOWN:
+            print("UNKNOWN")
         return None
 
 
@@ -54,8 +59,8 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
     add_shift_cycle(model, weeks, teams, all_vars)
     add_at_least_one_shift_manager_per_team_per_day(model, weeks, teams, all_vars)
     add_one_employee_only_works_five_days_in_a_row(model, weeks, teams, all_vars)
-    minimize_var_work_in_row = add_employee_should_work_in_a_row(model, weeks, teams, all_vars)
-    minimize_var_work_in_row_at_night = add_employee_should_work_night_shifts_in_a_row(model, weeks, teams, all_vars)
+    minimize_var_work_in_row = add_employee_should_work_in_a_row(model, weeks, teams, all_vars, 3)
+    minimize_var_work_in_row_at_night = add_employee_should_work_night_shifts_in_a_row(model, weeks, teams, all_vars, 7)
     # add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
     model.Minimize(minimize_var_work_in_row + minimize_var_work_in_row_at_night)
     print("All Rules added. Start Solver")

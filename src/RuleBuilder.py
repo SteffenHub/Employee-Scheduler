@@ -188,7 +188,7 @@ def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, wee
 
 
 def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                      all_vars: Dict[str, cp_model.IntVar]) -> cp_model.IntVar:
+                                      all_vars: Dict[str, cp_model.IntVar], cost: int) -> cp_model.IntVar:
     minimize_list = []
     for team in teams:
         for employee in team.employees:
@@ -212,8 +212,8 @@ def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week]
             # add one more transition if employee works on first Monday.
             # So it isn't better to work on first Monday to have fewer transitions
             transitions.append(work_days[0])
-            transitions_sum = model.NewIntVar(0, len(weeks) * 7, f"transition_sum_{team}_{employee}")
-            model.Add(transitions_sum == sum(transitions))
+            transitions_sum = model.NewIntVar(0, len(weeks) * 7 * cost, f"transition_sum_{team}_{employee}")
+            model.Add(transitions_sum == sum(transitions) * cost)
             transitions_mul = model.NewIntVar(0, 10000, f"transition_mul_{team}_{employee}")
             model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
             minimize_list.append(transitions_mul)
@@ -223,7 +223,7 @@ def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week]
 
 
 def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                   all_vars: Dict[str, cp_model.IntVar]) -> cp_model.IntVar:
+                                                   all_vars: Dict[str, cp_model.IntVar], cost: int) -> cp_model.IntVar:
     minimize_list = []
     for team in teams:
         for employee in team.employees:
@@ -250,13 +250,11 @@ def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, week
             # add one more transition if employee works on first Monday.
             # So it isn't better to work on first Monday to have fewer transitions
             transitions_night.append(work_days_at_night[0])
-            transitions_sum = model.NewIntVar(0, len(weeks) * 7, f"transition_sum_night_shifts_{team}_{employee}")
-            model.Add(transitions_sum == sum(transitions_night))
+            transitions_sum = model.NewIntVar(0, len(weeks) * 7 * cost, f"transition_sum_night_shifts_{team}_{employee}")
+            model.Add(transitions_sum == sum(transitions_night) * cost)
             transitions_mul = model.NewIntVar(0, 10000, f"transition_mul_night_shift_{team}_{employee}")
             model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
-            transitions_mul_2 = model.NewIntVar(0, 10000, f"transition_mul2_night_shift_{team}_{employee}")
-            model.AddMultiplicationEquality(transitions_mul_2, [transitions_mul, transitions_mul])
-            minimize_list.append(transitions_mul_2)
+            minimize_list.append(transitions_mul)
     var_to_minimize = model.NewIntVar(0, 100000, f"minimize_sum_work_in_a_row_night_shifts")
     model.Add(var_to_minimize == sum(minimize_list))
     return var_to_minimize
