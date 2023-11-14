@@ -18,12 +18,13 @@ from model.Week import Week
 
 
 class MySolutionPrinter(CpSolverSolutionCallback):
-    def __init__(self, transitions: cp_model.IntVar, night_transitions: cp_model.IntVar):
+    def __init__(self, transitions: cp_model.IntVar, night_transitions: cp_model.IntVar, night_shift_distribution: cp_model.IntVar):
         CpSolverSolutionCallback.__init__(self)
         self.solution_count = 0
         self.start_time = time.time()
         self.transitions = transitions
         self.night_transitions = night_transitions
+        self.night_shift_distribution = night_shift_distribution
 
     def on_solution_callback(self) -> None:
         print(
@@ -31,17 +32,18 @@ class MySolutionPrinter(CpSolverSolutionCallback):
             f"time = {time.time() - self.start_time} s, "
             f"objective = {self.ObjectiveValue()}, "
             f"transitions = {self.Value(self.transitions)}, "
-            f"night_transitions = {self.Value(self.night_transitions)}"
+            f"night_transitions = {self.Value(self.night_transitions)}, "
+            f"night_shift_distribution = {self.Value(self.night_shift_distribution)}"
         )
         self.solution_count += 1
 
 
 def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar], transitions: cp_model.IntVar,
-              night_transitions: cp_model.IntVar) -> Union[Dict[str, bool], None]:
+              night_transitions: cp_model.IntVar, night_shift_distribution: cp_model.IntVar) -> Union[Dict[str, bool], None]:
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 8
     solver.parameters.max_time_in_seconds = 60.0
-    solution_printer = MySolutionPrinter(transitions, night_transitions)
+    solution_printer = MySolutionPrinter(transitions, night_transitions, night_shift_distribution)
     status = solver.Solve(model, solution_printer)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
@@ -96,7 +98,7 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
         minimize_var_work_in_row_at_night +
         minimize_var_same_night_shift_amount_per_employee)
     print("All Rules added. Start Solver")
-    model_result = get_model(model, all_vars, minimize_var_work_in_row, minimize_var_work_in_row_at_night)
+    model_result = get_model(model, all_vars, minimize_var_work_in_row, minimize_var_work_in_row_at_night, minimize_var_same_night_shift_amount_per_employee)
     if model_result is not None:
         write_to_excel(model_result, teams, weeks)
     return model_result
