@@ -160,3 +160,4 @@ cython_debug/
 .idea/
 /src/model/Input_data_creator.py
 /src/hello_world.xlsx
+*.xlsx
