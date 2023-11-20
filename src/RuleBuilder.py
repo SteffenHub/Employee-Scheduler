@@ -1,6 +1,8 @@
 from ortools.sat.python import cp_model
 from typing import Dict, List
 
+from ortools.sat.python.cp_model import IntVar
+
 from model.Team import Team
 from model.Week import Week
 
@@ -188,8 +190,10 @@ def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, wee
 
 
 def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                      all_vars: Dict[str, cp_model.IntVar], cost: int) -> cp_model.IntVar:
+                                      all_vars: Dict[str, cp_model.IntVar],
+                                      cost: int) -> tuple[IntVar, dict[str, IntVar]]:
     minimize_list = []
+    transitions_cost_per_employee: dict[str, cp_model.IntVar] = {}
     for team in teams:
         for employee in team.employees:
             work_days = []
@@ -214,17 +218,20 @@ def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week]
             transitions.append(work_days[0])
             transitions_sum = model.NewIntVar(0, len(weeks) * 7 * cost, f"transition_sum_{team}_{employee}")
             model.Add(transitions_sum == sum(transitions) * cost)
+            transitions_cost_per_employee[f"{employee}"] = transitions_sum
             transitions_mul = model.NewIntVar(0, 10000, f"transition_mul_{team}_{employee}")
             model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
             minimize_list.append(transitions_mul)
     var_to_minimize = model.NewIntVar(0, 100000, f"minimize_sum_work_in_a_row")
     model.Add(var_to_minimize == sum(minimize_list))
-    return var_to_minimize
+    return var_to_minimize, transitions_cost_per_employee
 
 
 def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                   all_vars: Dict[str, cp_model.IntVar], cost: int) -> cp_model.IntVar:
+                                                   all_vars: Dict[str, cp_model.IntVar],
+                                                   cost: int) -> tuple[IntVar, dict[str, IntVar]]:
     minimize_list = []
+    transitions_cost_per_employee: dict[str, cp_model.IntVar] = {}
     for team in teams:
         for employee in team.employees:
             work_days_at_night = []
@@ -253,12 +260,13 @@ def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, week
             transitions_sum = model.NewIntVar(0, len(weeks) * 7 * cost,
                                               f"transition_sum_night_shifts_{team}_{employee}")
             model.Add(transitions_sum == sum(transitions_night) * cost)
+            transitions_cost_per_employee[f"{employee}"] = transitions_sum
             transitions_mul = model.NewIntVar(0, 10000, f"transition_mul_night_shift_{team}_{employee}")
             model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
             minimize_list.append(transitions_mul)
     var_to_minimize = model.NewIntVar(0, 100000, f"minimize_sum_work_in_a_row_night_shifts")
     model.Add(var_to_minimize == sum(minimize_list))
-    return var_to_minimize
+    return var_to_minimize, transitions_cost_per_employee
 
 
 def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
@@ -292,8 +300,10 @@ def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks
 
 
 def add_every_employee_should_do_same_amount_night_shifts(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                          all_vars: Dict[str, cp_model.IntVar], cost: int):
+                                                          all_vars: Dict[str, cp_model.IntVar],
+                                                          cost: int) -> tuple[IntVar, dict[str, IntVar]]:
     night_shifts_per_employee_minimize_list: List[cp_model.IntVar] = []
+    night_shift_cost_per_employee: dict[str, cp_model.IntVar] = {}
     max_minimize_value = 0
     for team in teams:
         for employee in team.employees:
@@ -305,12 +315,13 @@ def add_every_employee_should_do_same_amount_night_shifts(model: cp_model.CpMode
             night_shift_assignments_sum = model.NewIntVar(0, len(night_shift_assignments * cost),
                                                           f"help_same_night_shift_amount_sum_{team}_{employee}")
             model.Add(night_shift_assignments_sum == sum(night_shift_assignments) * cost)
+            night_shift_cost_per_employee[f"{employee}"] = night_shift_assignments_sum
             night_shift_assignments_mul = model.NewIntVar(0, len(night_shift_assignments * cost) ** 2,
                                                           f"help_same_night_shift_amount_mul_{team}_{employee}")
             model.AddMultiplicationEquality(night_shift_assignments_mul,
                                             [night_shift_assignments_sum, night_shift_assignments_sum])
-            max_minimize_value = max_minimize_value + len(night_shift_assignments * cost) ** 2
+            max_minimize_value += len(night_shift_assignments * cost) ** 2
             night_shifts_per_employee_minimize_list.append(night_shift_assignments_mul)
     minimize_value = model.NewIntVar(0, max_minimize_value, f"minimize_value_for_same_night_shift_amount")
     model.Add(minimize_value == sum(night_shifts_per_employee_minimize_list))
-    return minimize_value
+    return minimize_value, night_shift_cost_per_employee

@@ -2,6 +2,7 @@ import time
 from typing import Dict, Union, List
 from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import CpSolverSolutionCallback
+from prettytable import PrettyTable
 
 from Excel_interface import write_to_excel
 from RuleBuilder import add_every_shift_skill_is_assigned, add_one_employee_only_one_shift_per_day, \
@@ -18,28 +19,65 @@ from model.Week import Week
 
 
 class MySolutionPrinter(CpSolverSolutionCallback):
-    def __init__(self, transitions: cp_model.IntVar, night_transitions: cp_model.IntVar, night_shift_distribution: cp_model.IntVar):
+    def __init__(self, transition_cost: dict[str, cp_model.IntVar], night_transitions: dict[str, cp_model.IntVar],
+                 night_shift_distribution: Dict[str, cp_model.IntVar]):
         CpSolverSolutionCallback.__init__(self)
         self.solution_count = 0
         self.start_time = time.time()
-        self.transitions = transitions
+        self.transition_cost = transition_cost
         self.night_transitions = night_transitions
         self.night_shift_distribution = night_shift_distribution
 
     def on_solution_callback(self) -> None:
-        print(
-            f"Solution {self.solution_count}, "
-            f"time = {time.time() - self.start_time} s, "
-            f"objective = {self.ObjectiveValue()}, "
-            f"transitions = {self.Value(self.transitions)}, "
-            f"night_transitions = {self.Value(self.night_transitions)}, "
-            f"night_shift_distribution = {self.Value(self.night_shift_distribution)}"
-        )
+        table = PrettyTable()
+        table.field_names = ["Employee", "transitions", "transition_cost", "night_transitions",
+                             "night_transitions_cost", "night_shift_distibution", "night_shift_distribution cost",
+                             "sum_costs"]
+
+        print(f"Solution {self.solution_count}, time {time.time() - self.start_time}s")
+        transitions_sum = 0
+        transitions_cost_sum = 0
+        night_transition_sum = 0
+        night_transitions_cost_sum = 0
+        night_shift_distribution_sum = 0
+        night_shift_distribution_cost_sum = 0
+        for i, employee in enumerate(self.transition_cost.keys()):
+            transitions = int(self.Value(self.transition_cost[employee]) / 3)
+            transitions_sum += transitions
+            transitions_cost = self.Value(self.transition_cost[employee]) ** 2
+            transitions_cost_sum += transitions_cost
+            night_transitions = int(self.Value(self.night_transitions[employee]) / 7)
+            night_transition_sum += night_transitions
+            night_transitions_cost = self.Value(self.night_transitions[employee]) ** 2
+            night_transitions_cost_sum += night_transitions_cost
+            night_shift_distribution = int(self.Value(self.night_shift_distribution[employee]) / 2)
+            night_shift_distribution_sum += night_shift_distribution
+            night_shift_distribution_cost = self.Value(self.night_shift_distribution[employee]) ** 2
+            night_shift_distribution_cost_sum += night_shift_distribution_cost
+            sum_costs = transitions_cost + night_transitions_cost + night_shift_distribution_cost
+            table.add_row([employee,
+                           transitions, transitions_cost,
+                           night_transitions, night_transitions_cost,
+                           night_shift_distribution, night_shift_distribution_cost, sum_costs],
+                          divider=True if len(self.transition_cost) == i + 1 else False)
+        table.add_row(["sum_costs", str(transitions_sum), str(transitions_cost_sum),
+                       str(night_transition_sum), str(night_transitions_cost_sum),
+                       str(night_shift_distribution_sum), str(night_shift_distribution_cost_sum),
+                       self.ObjectiveValue()])
+        print(table)
+        print("transitions = Number of changes between working day and day off")
+        print("transition_cost = (transitions * 3)^2")
+        print("night_transitions = Number of changes between working night shift day and any other day")
+        print("night_transitions_cost = (night_transitions * 7)^2")
+        print("night_shift_distribution = Number of worked night shifts")
+        print("night_shift_distribution_cost = (night_shift_distribution * 2)^2")
         self.solution_count += 1
 
 
-def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar], transitions: cp_model.IntVar,
-              night_transitions: cp_model.IntVar, night_shift_distribution: cp_model.IntVar) -> Union[Dict[str, bool], None]:
+def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar], transitions: dict[str, cp_model.IntVar],
+              night_transitions: Dict[str, cp_model.IntVar], night_shift_distribution: Dict[str, cp_model.IntVar]) -> \
+        Union[
+            Dict[str, bool], None]:
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 8
     solver.parameters.max_time_in_seconds = 60.0
@@ -48,9 +86,9 @@ def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar], tra
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         if status == cp_model.OPTIMAL:
-            print("Optimal")
+            print("OPTIMAL")
         if status == cp_model.FEASIBLE:
-            print("Feasible")
+            print("FEASIBLE")
         return {var: solver.Value(all_vars[var]) == 1 for var in all_vars.keys()}
     else:
         if status == cp_model.INFEASIBLE:
@@ -88,17 +126,20 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
     add_one_employee_only_works_five_days_in_a_row(model, weeks, teams, all_vars)
 
     # Soft constrains
-    minimize_var_work_in_row = add_employee_should_work_in_a_row(model, weeks, teams, all_vars, 3)
-    minimize_var_work_in_row_at_night = add_employee_should_work_night_shifts_in_a_row(model, weeks, teams, all_vars, 7)
-    minimize_var_same_night_shift_amount_per_employee = add_every_employee_should_do_same_amount_night_shifts(
-        model, weeks, teams, all_vars, 2)
+    minimize_var_work_in_row, transition_cost_per_employee = \
+        add_employee_should_work_in_a_row(model, weeks, teams, all_vars, 3)
+    minimize_var_work_in_row_at_night, night_transition_cost_per_employee = \
+        add_employee_should_work_night_shifts_in_a_row(model, weeks, teams, all_vars, 7)
+    minimize_var_same_night_shift_amount_per_employee, night_shift_cost_per_employee = \
+        add_every_employee_should_do_same_amount_night_shifts(model, weeks, teams, all_vars, 2)
     # add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
     model.Minimize(
         minimize_var_work_in_row +
         minimize_var_work_in_row_at_night +
         minimize_var_same_night_shift_amount_per_employee)
     print("All Rules added. Start Solver")
-    model_result = get_model(model, all_vars, minimize_var_work_in_row, minimize_var_work_in_row_at_night, minimize_var_same_night_shift_amount_per_employee)
+    model_result = get_model(model, all_vars, transition_cost_per_employee, night_transition_cost_per_employee,
+                             night_shift_cost_per_employee)
     if model_result is not None:
         write_to_excel(model_result, teams, weeks)
     return model_result
@@ -107,4 +148,4 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
 if __name__ == "__main__":
     weeks_input, teams_input = create_input_data()
     result = main(weeks_input, teams_input)
-    print(result)
+    # print(result)
