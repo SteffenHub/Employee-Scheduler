@@ -149,9 +149,8 @@ def add_every_employee_have_two_shift_pause(model: cp_model.CpModel, weeks: List
 
 
 def add_shift_cycle(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                    all_vars: Dict[str, cp_model.IntVar]):
+                    all_vars: Dict[str, cp_model.IntVar], shift_cycle: list[str]):
     # Only works if every day in every week have the same shifts
-    shift_cycle = ["F", "S", "N"]
     for team in teams:
         for i in range(0, len(weeks) - 1):
             for shift in shift_cycle:
@@ -228,8 +227,8 @@ def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week]
 
 
 def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                   all_vars: Dict[str, cp_model.IntVar],
-                                                   cost: int) -> tuple[IntVar, dict[str, IntVar]]:
+                                                   all_vars: Dict[str, cp_model.IntVar], cost: int,
+                                                   night_shift_name: str) -> tuple[IntVar, dict[str, IntVar]]:
     minimize_list = []
     transitions_cost_per_employee: dict[str, cp_model.IntVar] = {}
     for team in teams:
@@ -241,7 +240,7 @@ def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, week
                         f"help_var_{team}_{employee}_works_in_night_shift_on_{week}_{day}")
                     possible_night_assignments = [all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]
                                                   for shift in day.shifts
-                                                  if shift.name == "N"
+                                                  if shift.name == night_shift_name
                                                   for needed_skill in shift.needed_skills]
                     model.Add(sum(possible_night_assignments) > 0).OnlyEnforceIf(works_in_night_shift)
                     model.Add(sum(possible_night_assignments) == 0).OnlyEnforceIf(works_in_night_shift.Not())
@@ -300,8 +299,8 @@ def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks
 
 
 def add_every_employee_should_do_same_amount_night_shifts(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                          all_vars: Dict[str, cp_model.IntVar],
-                                                          cost: int) -> tuple[IntVar, dict[str, IntVar]]:
+                                                          all_vars: Dict[str, cp_model.IntVar], cost: int,
+                                                          night_shift_name: str) -> tuple[IntVar, dict[str, IntVar]]:
     night_shifts_per_employee_minimize_list: List[cp_model.IntVar] = []
     night_shift_cost_per_employee: dict[str, cp_model.IntVar] = {}
     max_minimize_value = 0
@@ -310,7 +309,7 @@ def add_every_employee_should_do_same_amount_night_shifts(model: cp_model.CpMode
             night_shift_assignments = [all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]
                                        for week in weeks
                                        for day in week.days
-                                       for shift in day.shifts if shift.name == "N"
+                                       for shift in day.shifts if shift.name == night_shift_name
                                        for needed_skill in shift.needed_skills]
             night_shift_assignments_sum = model.NewIntVar(0, len(night_shift_assignments * cost),
                                                           f"help_same_night_shift_amount_sum_{team}_{employee}")

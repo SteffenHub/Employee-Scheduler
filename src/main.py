@@ -80,7 +80,7 @@ def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar], tra
             Dict[str, bool], None]:
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 8
-    solver.parameters.max_time_in_seconds = 60.0
+    solver.parameters.max_time_in_seconds = 120.0
     solution_printer = MySolutionPrinter(transitions, night_transitions, night_shift_distribution)
     status = solver.Solve(model, solution_printer)
 
@@ -121,7 +121,7 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
     add_one_employee_only_works_five_days_a_week(model, weeks, teams, all_vars)
     add_one_employee_works_the_same_shift_a_week(model, weeks, teams, all_vars)
     add_every_employee_have_two_shift_pause(model, weeks, teams, all_vars)
-    add_shift_cycle(model, weeks, teams, all_vars)
+    add_shift_cycle(model, weeks, teams, all_vars, ["M", "A", "N"])
     add_at_least_one_shift_manager_per_team_per_day(model, weeks, teams, all_vars)
     add_one_employee_only_works_five_days_in_a_row(model, weeks, teams, all_vars)
 
@@ -129,9 +129,9 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
     minimize_var_work_in_row, transition_cost_per_employee = \
         add_employee_should_work_in_a_row(model, weeks, teams, all_vars, 3)
     minimize_var_work_in_row_at_night, night_transition_cost_per_employee = \
-        add_employee_should_work_night_shifts_in_a_row(model, weeks, teams, all_vars, 7)
+        add_employee_should_work_night_shifts_in_a_row(model, weeks, teams, all_vars, 7, "N")
     minimize_var_same_night_shift_amount_per_employee, night_shift_cost_per_employee = \
-        add_every_employee_should_do_same_amount_night_shifts(model, weeks, teams, all_vars, 2)
+        add_every_employee_should_do_same_amount_night_shifts(model, weeks, teams, all_vars, 2, "N")
     # add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
     model.Minimize(
         minimize_var_work_in_row +
@@ -140,12 +140,12 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
     print("All Rules added. Start Solver")
     model_result = get_model(model, all_vars, transition_cost_per_employee, night_transition_cost_per_employee,
                              night_shift_cost_per_employee)
-    if model_result is not None:
-        write_to_excel(model_result, teams, weeks)
     return model_result
 
 
 if __name__ == "__main__":
     weeks_input, teams_input = create_input_data()
     result = main(weeks_input, teams_input)
+    if result is not None:
+        write_to_excel(result, teams_input, weeks_input, ["M", "A", "N"])
     # print(result)

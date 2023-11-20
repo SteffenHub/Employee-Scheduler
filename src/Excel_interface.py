@@ -8,20 +8,23 @@ from model.Team import Team
 from model.Week import Week
 
 
-def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List[Week]):
+def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List[Week], shift_names: list[str]):
     workbook = Workbook()
     sheet = workbook.active
+    if len(shift_names) > 3:
+        print(model_result)
+        [print("length of shift_names is greater than 3") for _ in range(20)]
 
-    colors = {"F": PatternFill(start_color='92d050', end_color='92d050', fill_type='solid'),
-              "S": PatternFill(start_color='ffc000', end_color='ffc000', fill_type='solid'),
-              "N": PatternFill(start_color='00b0f0', end_color='00b0f0', fill_type='solid'),
-              "MB:T2": PatternFill(start_color='ff99ff', end_color='ff99ff', fill_type='solid'),
-              "P1:T2": PatternFill(start_color='ff99ff', end_color='ff99ff', fill_type='solid'),
-              "P2:T2": PatternFill(start_color='ff99ff', end_color='ff99ff', fill_type='solid'),
-              "P1:T1": PatternFill(start_color='99ff99', end_color='99ff99', fill_type='solid'),
-              "MB:ET": PatternFill(start_color='66ffff', end_color='66ffff', fill_type='solid'),
-              "P:ET": PatternFill(start_color='66ffff', end_color='66ffff', fill_type='solid'),
-              "MB:KSS": PatternFill(start_color='cc9900', end_color='cc9900', fill_type='solid'),
+    colors = {shift_names[0]: PatternFill(start_color='92d050', end_color='92d050', fill_type='solid'),
+              shift_names[1]: PatternFill(start_color='ffc000', end_color='ffc000', fill_type='solid'),
+              shift_names[2]: PatternFill(start_color='00b0f0', end_color='00b0f0', fill_type='solid'),
+              "MO:M1": PatternFill(start_color='ff99ff', end_color='ff99ff', fill_type='solid'),
+              "H1:M1": PatternFill(start_color='ff99ff', end_color='ff99ff', fill_type='solid'),
+              "H2:M1": PatternFill(start_color='ff99ff', end_color='ff99ff', fill_type='solid'),
+              "H:M2": PatternFill(start_color='99ff99', end_color='99ff99', fill_type='solid'),
+              "MO:M3": PatternFill(start_color='66ffff', end_color='66ffff', fill_type='solid'),
+              "H:M3": PatternFill(start_color='66ffff', end_color='66ffff', fill_type='solid'),
+              "MO:M4": PatternFill(start_color='cc9900', end_color='cc9900', fill_type='solid'),
               "weekend": PatternFill(start_color='f3af9a', end_color='f3af9a', fill_type='solid'),
               "Team1": PatternFill(start_color='fff2cc', end_color='fff2cc', fill_type='solid'),
               "Team2": PatternFill(start_color='e2f0d9', end_color='e2f0d9', fill_type='solid'),
@@ -56,13 +59,13 @@ def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List
     sheet["C1"] = "Skills"
 
     # add calendar
-    wochentage = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    wochentage = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
     column = 3
     for week in weeks:
         for j in range(1, len(week.days) + 1):
             index = (j - 1)
             sheet[f"{columns[column]}{1}"] = wochentage[index]
-            if week.days[index].name == "Sa" or week.days[index].name == "So":
+            if week.days[index].name == "Sa" or week.days[index].name == "Su":
                 for i in range(1, len([employee for team in teams for employee in team.employees]) * 2 + 1 + 1):
                     sheet[f"{columns[column]}{i}"].fill = colors["weekend"]
                     sheet[f"{columns[column]}{i}"].border = thin_border
