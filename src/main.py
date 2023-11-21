@@ -30,7 +30,7 @@ class MySolutionPrinter(CpSolverSolutionCallback):
 
     def on_solution_callback(self) -> None:
         table = PrettyTable()
-        table.field_names = ["Employee", "transitions", "transition_cost", "night_transitions",
+        table.field_names = ["Team", "Employee", "transitions", "transition_cost", "night_transitions",
                              "night_transitions_cost", "night_shift_distibution", "night_shift_distribution cost",
                              "sum_costs"]
 
@@ -41,26 +41,28 @@ class MySolutionPrinter(CpSolverSolutionCallback):
         night_transitions_cost_sum = 0
         night_shift_distribution_sum = 0
         night_shift_distribution_cost_sum = 0
-        for i, employee in enumerate(self.transition_cost.keys()):
-            transitions = int(self.Value(self.transition_cost[employee]) / 3)
+        for i, teamEmployee in enumerate(self.transition_cost.keys()):
+            team, employee = teamEmployee.split(":")
+            next_team = list(self.transition_cost.keys())[i+1].split(":")[0] if i < len(self.transition_cost)-1 else team
+            transitions = int(self.Value(self.transition_cost[teamEmployee]) / 3)
             transitions_sum += transitions
-            transitions_cost = self.Value(self.transition_cost[employee]) ** 2
+            transitions_cost = self.Value(self.transition_cost[teamEmployee]) ** 2
             transitions_cost_sum += transitions_cost
-            night_transitions = int(self.Value(self.night_transitions[employee]) / 7)
+            night_transitions = int(self.Value(self.night_transitions[teamEmployee]) / 7)
             night_transition_sum += night_transitions
-            night_transitions_cost = self.Value(self.night_transitions[employee]) ** 2
+            night_transitions_cost = self.Value(self.night_transitions[teamEmployee]) ** 2
             night_transitions_cost_sum += night_transitions_cost
-            night_shift_distribution = int(self.Value(self.night_shift_distribution[employee]) / 2)
+            night_shift_distribution = int(self.Value(self.night_shift_distribution[teamEmployee]) / 2)
             night_shift_distribution_sum += night_shift_distribution
-            night_shift_distribution_cost = self.Value(self.night_shift_distribution[employee]) ** 2
+            night_shift_distribution_cost = self.Value(self.night_shift_distribution[teamEmployee]) ** 2
             night_shift_distribution_cost_sum += night_shift_distribution_cost
             sum_costs = transitions_cost + night_transitions_cost + night_shift_distribution_cost
-            table.add_row([employee,
+            table.add_row([team, employee,
                            transitions, transitions_cost,
                            night_transitions, night_transitions_cost,
                            night_shift_distribution, night_shift_distribution_cost, sum_costs],
-                          divider=True if len(self.transition_cost) == i + 1 else False)
-        table.add_row(["sum_costs", str(transitions_sum), str(transitions_cost_sum),
+                          divider=len(self.transition_cost) == i + 1 or team != next_team)
+        table.add_row(["sum_costs", "", str(transitions_sum), str(transitions_cost_sum),
                        str(night_transition_sum), str(night_transitions_cost_sum),
                        str(night_shift_distribution_sum), str(night_shift_distribution_cost_sum),
                        self.ObjectiveValue()])

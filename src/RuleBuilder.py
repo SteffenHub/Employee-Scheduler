@@ -217,7 +217,7 @@ def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week]
             transitions.append(work_days[0])
             transitions_sum = model.NewIntVar(0, len(weeks) * 7 * cost, f"transition_sum_{team}_{employee}")
             model.Add(transitions_sum == sum(transitions) * cost)
-            transitions_cost_per_employee[f"{employee}"] = transitions_sum
+            transitions_cost_per_employee[f"{team}:{employee}"] = transitions_sum
             transitions_mul = model.NewIntVar(0, 10000, f"transition_mul_{team}_{employee}")
             model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
             minimize_list.append(transitions_mul)
@@ -259,7 +259,7 @@ def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, week
             transitions_sum = model.NewIntVar(0, len(weeks) * 7 * cost,
                                               f"transition_sum_night_shifts_{team}_{employee}")
             model.Add(transitions_sum == sum(transitions_night) * cost)
-            transitions_cost_per_employee[f"{employee}"] = transitions_sum
+            transitions_cost_per_employee[f"{team}:{employee}"] = transitions_sum
             transitions_mul = model.NewIntVar(0, 10000, f"transition_mul_night_shift_{team}_{employee}")
             model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
             minimize_list.append(transitions_mul)
@@ -314,7 +314,7 @@ def add_every_employee_should_do_same_amount_night_shifts(model: cp_model.CpMode
             night_shift_assignments_sum = model.NewIntVar(0, len(night_shift_assignments * cost),
                                                           f"help_same_night_shift_amount_sum_{team}_{employee}")
             model.Add(night_shift_assignments_sum == sum(night_shift_assignments) * cost)
-            night_shift_cost_per_employee[f"{employee}"] = night_shift_assignments_sum
+            night_shift_cost_per_employee[f"{team}:{employee}"] = night_shift_assignments_sum
             night_shift_assignments_mul = model.NewIntVar(0, len(night_shift_assignments * cost) ** 2,
                                                           f"help_same_night_shift_amount_mul_{team}_{employee}")
             model.AddMultiplicationEquality(night_shift_assignments_mul,
