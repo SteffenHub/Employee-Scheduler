@@ -1,6 +1,8 @@
 import re
 from typing import Dict, List
+import math
 
+import openpyxl
 from openpyxl.styles import PatternFill, Side, Border, Font
 from openpyxl.workbook import Workbook
 
@@ -100,3 +102,32 @@ def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List
                 f"{this_column}{this_row}"
             ].border = thin_border
     workbook.save(filename="hello_world.xlsx")
+
+
+def read_from_excel(name_of_excel_file: str):
+    # read
+    workbook = openpyxl.load_workbook(name_of_excel_file)
+    sheet = workbook.active
+
+    # get content from excel
+    content = []
+    for row in sheet.iter_rows(values_only=True):
+        content.append(row)
+
+    result: list[str] = []
+    days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+    # iterate through all rows beginning with 1. first row is header containing day names
+    i = 1
+    while i < len(content):
+        # get team und employee name
+        team, name = content[i][:2]
+        # start with column 3. 0-2 containing team, name and skills
+        day_number = 0
+        for shift, skill in zip(content[i][3:], content[i + 1][3:]):
+            if shift is not None and skill is not None:
+                key = f"Week{math.ceil((day_number+1)/7)}_{days[day_number%7]}_{shift}_{team}_{name}_{skill}"
+                result.append(key)
+                print(key)
+            day_number += 1
+        i += 2
+    return result

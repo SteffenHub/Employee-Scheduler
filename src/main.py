@@ -4,7 +4,7 @@ from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import CpSolverSolutionCallback
 from prettytable import PrettyTable
 
-from Excel_interface import write_to_excel
+from Excel_interface import write_to_excel, read_from_excel
 from RuleBuilder import add_every_shift_skill_is_assigned, add_one_employee_only_one_shift_per_day, \
     add_employee_cant_do_what_he_cant, add_employees_can_only_work_with_team_members, \
     add_one_employee_only_works_five_days_a_week, add_one_employee_works_the_same_shift_a_week, \
@@ -100,7 +100,7 @@ def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar], tra
         return None
 
 
-def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
+def main(weeks: List[Week], teams: List[Team], keys) -> Union[Dict[str, bool], None]:
     model = cp_model.CpModel()
 
     # create all vars
@@ -114,6 +114,8 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
                             key = f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"
                             var = model.NewBoolVar(key)
                             all_vars[key] = var
+    for key in keys:
+        model.Add(all_vars[key] == 1)
 
     # Hard constraints
     add_every_shift_skill_is_assigned(model, weeks, teams, all_vars)
@@ -146,8 +148,10 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
 
 
 if __name__ == "__main__":
-    weeks_input, teams_input = create_input_data()
-    result = main(weeks_input, teams_input)
+    keys = read_from_excel('hello_world.xlsx')
+    highest_week_number = max([int(k.split('_')[0][4:]) for k in keys])
+    weeks_input, teams_input = create_input_data(highest_week_number + 0)
+    result = main(weeks_input, teams_input, keys)
     if result is not None:
         write_to_excel(result, teams_input, weeks_input, ["M", "A", "N"])
     # print(result)

@@ -8,7 +8,7 @@ from model.Team import Team
 from model.Week import Week
 
 
-def create_input_data() -> Tuple[List[Week], List[Team]]:
+def create_input_data(number_of_weeks: int) -> Tuple[List[Week], List[Team]]:
     # create Skills
     skills: Dict[str, Skill] = {"MO:M1": Skill("MO:M1"),
                                 "H1:M1": Skill("H1:M1"),
@@ -96,9 +96,6 @@ def create_input_data() -> Tuple[List[Week], List[Team]]:
                      Shift("A", skills_m1 + skills_m3),
                      Shift("N", skills_m1 + skills_m3)]))
 
-    weeks: List[Week] = [Week("Week1", days),
-                         Week("Week2", days),
-                         Week("Week3", days),
-                         Week("Week4", days)]
+    weeks: list[Week] = [Week(f"Week{i}", days) for i in range(1, number_of_weeks + 1)]
 
     return weeks, teams
