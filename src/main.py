@@ -11,7 +11,7 @@ from RuleBuilder import add_every_shift_skill_is_assigned, add_one_employee_only
     add_every_employee_have_two_shift_pause, add_shift_cycle, add_at_least_one_shift_manager_per_team_per_day, \
     add_one_employee_only_works_five_days_in_a_row, add_an_employee_should_do_the_same_job_a_week, \
     add_employee_should_work_in_a_row, add_employee_should_work_night_shifts_in_a_row, \
-    add_every_employee_should_do_same_amount_night_shifts
+    add_every_employee_should_do_same_amount_night_shifts, add_illness
 
 from model.Input_data_creator import create_input_data
 from model.Team import Team
@@ -126,6 +126,7 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
     add_shift_cycle(model, weeks, teams, all_vars, ["M", "A", "N"])
     add_at_least_one_shift_manager_per_team_per_day(model, weeks, teams, all_vars)
     add_one_employee_only_works_five_days_in_a_row(model, weeks, teams, all_vars)
+    add_illness(model, weeks, teams, all_vars, "Team1_P5", [f"Week1_{day.name}" for day in weeks[0].days])
 
     # Soft constrains
     minimize_var_work_in_row, transition_cost_per_employee = \

@@ -190,6 +190,19 @@ def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, wee
                                      for needed_skill in shift.needed_skills])
 
 
+def add_illness(model: cp_model.CpModel, weeks: List[Week], teams: List[Team], all_vars: Dict[str, cp_model.IntVar], employee: str, ill_week_days: list[str]):
+    team, employee = employee.split("_")
+    for week_day in ill_week_days:
+        ill_week, ill_day = week_day.split("_")
+        for week in weeks:
+            if week.name == ill_week:
+                for day in week.days:
+                    if day.name == ill_day:
+                        for shift in day.shifts:
+                            for needed_skill in shift.needed_skills:
+                                model.Add(all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"] == 0)
+
+
 def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
                                       all_vars: Dict[str, cp_model.IntVar],
                                       cost: int) -> tuple[IntVar, dict[str, IntVar]]:
