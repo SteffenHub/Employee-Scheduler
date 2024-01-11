@@ -1,6 +1,6 @@
 from typing import List
 
-from model.Day import Day
+from src.model.Day import Day
 
 
 class Week:

@@ -1,6 +1,6 @@
 from typing import List
 
-from model.Shift import Shift
+from src.model.Shift import Shift
 
 
 class Day:

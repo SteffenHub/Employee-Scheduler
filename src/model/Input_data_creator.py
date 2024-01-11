@@ -1,16 +1,14 @@
-from typing import List, Dict, Tuple
-
-from model.Day import Day
-from model.Employee import Employee
-from model.Shift import Shift
-from model.Skill import Skill
-from model.Team import Team
-from model.Week import Week
+from src.model.Day import Day
+from src.model.Employee import Employee
+from src.model.Shift import Shift
+from src.model.Skill import Skill
+from src.model.Team import Team
+from src.model.Week import Week
 
 
-def create_input_data(number_of_weeks: int) -> Tuple[List[Week], List[Team]]:
+def create_input_data(number_of_days: int) -> tuple[list[Week], list[Team]]:
     # create Skills
-    skills: Dict[str, Skill] = {"MO:M1": Skill("MO:M1"),
+    skills: dict[str, Skill] = {"MO:M1": Skill("MO:M1"),
                                 "H1:M1": Skill("H1:M1"),
                                 "H2:M1": Skill("H2:M1"),
                                 "H:M2": Skill("H:M2"),
@@ -18,9 +16,9 @@ def create_input_data(number_of_weeks: int) -> Tuple[List[Week], List[Team]]:
                                 "H:M3": Skill("H:M3"),
                                 "MO:M4": Skill("MO:M4")}
     helper = [skills["H1:M1"], skills["H2:M1"], skills["H:M2"], skills["H:M3"]]
-    teams: List[Team] = []
+    teams: list[Team] = []
     # Team 1
-    employees: List[Employee] = [Employee("P1", [skills["MO:M1"], skills["MO:M3"]] + helper, is_shift_manager=True),
+    employees: list[Employee] = [Employee("P1", [skills["MO:M1"], skills["MO:M3"]] + helper, is_shift_manager=True),
                                  Employee("P2", [skills["MO:M3"]] + helper),
                                  Employee("P3", [skills["MO:M1"], skills["MO:M3"]] + helper),
                                  Employee("P4", [skills["H:M3"]]),
@@ -34,7 +32,7 @@ def create_input_data(number_of_weeks: int) -> Tuple[List[Week], List[Team]]:
                                  Employee("P12", [skills["MO:M4"]] + helper)]
     teams.append(Team("Team1", employees))
     # Team 2
-    employees: List[Employee] = [Employee("P13", [skills["MO:M1"], skills["MO:M3"]] + helper, is_shift_manager=True),
+    employees: list[Employee] = [Employee("P13", [skills["MO:M1"], skills["MO:M3"]] + helper, is_shift_manager=True),
                                  Employee("P14", [skills["MO:M1"], skills["MO:M3"]] + helper),
                                  Employee("P15", helper),
                                  Employee("P16", [skills["MO:M1"], skills["MO:M3"]] + helper),
@@ -47,7 +45,7 @@ def create_input_data(number_of_weeks: int) -> Tuple[List[Week], List[Team]]:
                                  Employee("P23", [skills["MO:M3"], skills["MO:M4"]] + helper)]
     teams.append(Team("Team2", employees))
     # Team 3
-    employees: List[Employee] = [Employee("P24", [skills["MO:M1"], skills["MO:M3"]] + helper, is_shift_manager=True),
+    employees: list[Employee] = [Employee("P24", [skills["MO:M1"], skills["MO:M3"]] + helper, is_shift_manager=True),
                                  Employee("P25", helper),
                                  Employee("P26", [skills["MO:M1"], skills["MO:M3"]] + helper),
                                  Employee("P27", helper),
@@ -60,13 +58,13 @@ def create_input_data(number_of_weeks: int) -> Tuple[List[Week], List[Team]]:
                                  Employee("P34", [skills["MO:M4"]] + helper)]
     teams.append(Team("Team3", employees))
 
-    skills_m1: List[Skill] = [skills["MO:M1"], skills["H1:M1"], skills["H2:M1"]]
-    skills_m2: List[Skill] = [skills["H:M2"]]
-    skills_m3: List[Skill] = [skills["MO:M3"], skills["H:M3"]]
-    skills_m4: List[Skill] = [skills["MO:M4"]]
+    skills_m1: list[Skill] = [skills["MO:M1"], skills["H1:M1"], skills["H2:M1"]]
+    skills_m2: list[Skill] = [skills["H:M2"]]
+    skills_m3: list[Skill] = [skills["MO:M3"], skills["H:M3"]]
+    skills_m4: list[Skill] = [skills["MO:M4"]]
 
     # create days and shifts
-    days: List[Day] = []
+    days: list[Day] = []
     days.append(Day("Mo",
                     [Shift("M", skills_m1 + skills_m3 + skills_m4),
                      Shift("A", skills_m1 + skills_m2 + skills_m3 + skills_m4),
@@ -96,6 +94,15 @@ def create_input_data(number_of_weeks: int) -> Tuple[List[Week], List[Team]]:
                      Shift("A", skills_m1 + skills_m3),
                      Shift("N", skills_m1 + skills_m3)]))
 
-    weeks: list[Week] = [Week(f"Week{i}", days) for i in range(1, number_of_weeks + 1)]
+    weeks = []
+    days_for_week = []
+    i = 0
+    for i in range(number_of_days):
+        if i % 7 == 0 and i != 0:
+            weeks.append(Week(f"Week{i//7}", days_for_week))
+            days_for_week = []
+        days_for_week.append(days[i % 7])
+    if i % 7 != 0:
+        weeks.append(Week(f"Week{i//7+1}", days_for_week))
 
     return weeks, teams

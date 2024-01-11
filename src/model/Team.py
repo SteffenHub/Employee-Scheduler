@@ -1,6 +1,6 @@
 from typing import List
 
-from model.Employee import Employee
+from src.model.Employee import Employee
 
 
 class Team:

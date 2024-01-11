@@ -150,7 +150,7 @@ def main(weeks: List[Week], teams: List[Team], keys) -> Union[Dict[str, bool], N
 if __name__ == "__main__":
     keys = read_from_excel('hello_world.xlsx')
     highest_week_number = max([int(k.split('_')[0][4:]) for k in keys])
-    weeks_input, teams_input = create_input_data(highest_week_number + 0)
+    weeks_input, teams_input = create_input_data(highest_week_number*7 + 0)
     result = main(weeks_input, teams_input, keys)
     if result is not None:
         write_to_excel(result, teams_input, weeks_input, ["M", "A", "N"])

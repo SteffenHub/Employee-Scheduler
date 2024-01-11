@@ -1,6 +1,6 @@
 from typing import List
 
-from model.Skill import Skill
+from src.model.Skill import Skill
 
 
 class Employee:
