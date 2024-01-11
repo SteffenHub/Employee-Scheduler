@@ -97,11 +97,12 @@ def create_input_data(number_of_days: int) -> tuple[list[Week], list[Team]]:
     weeks = []
     days_for_week = []
     i = 0
-    for i in range(number_of_days):
+    while i < number_of_days:
         if i % 7 == 0 and i != 0:
             weeks.append(Week(f"Week{i//7}", days_for_week))
             days_for_week = []
         days_for_week.append(days[i % 7])
+        i += 1
     if i % 7 != 0:
         weeks.append(Week(f"Week{i//7+1}", days_for_week))
 
