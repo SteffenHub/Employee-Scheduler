@@ -5,7 +5,7 @@ from ortools.sat.python.cp_model import CpSolverSolutionCallback
 from prettytable import PrettyTable
 
 from Excel_interface import write_to_excel
-from RuleBuilder import add_every_shift_skill_is_assigned, add_one_employee_only_one_shift_per_day, \
+from rule_builder import add_every_shift_skill_is_assigned, add_one_employee_only_one_shift_per_day, \
     add_employee_cant_do_what_he_cant, add_employees_can_only_work_with_team_members, \
     add_one_employee_only_works_five_days_a_week, add_one_employee_works_the_same_shift_a_week, \
     add_every_employee_have_two_shift_pause, add_shift_cycle, add_at_least_one_shift_manager_per_team_per_day, \
