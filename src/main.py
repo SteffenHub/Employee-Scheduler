@@ -13,7 +13,7 @@ from RuleBuilder import add_every_shift_skill_is_assigned, add_one_employee_only
     add_employee_should_work_in_a_row, add_employee_should_work_night_shifts_in_a_row, \
     add_every_employee_should_do_same_amount_night_shifts
 
-from model.Input_data_creator import create_input_data
+from model.Input_data_creator import get_teams_input_data, get_weeks_input_data
 from model.Team import Team
 from model.Week import Week
 
@@ -85,7 +85,7 @@ def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar], tra
     solver.parameters.max_time_in_seconds = 120.0
     solution_printer = MySolutionPrinter(transitions, night_transitions, night_shift_distribution)
     status = solver.Solve(model, solution_printer)
-
+    print("TIME LIMIT REACHED")
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         if status == cp_model.OPTIMAL:
             print("OPTIMAL")
@@ -100,34 +100,29 @@ def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar], tra
         return None
 
 
-def main(weeks: List[Week], teams: List[Team], keys) -> Union[Dict[str, bool], None]:
+def main(weeks: List[Week], weeks_plus_one: list[Week], teams: List[Team], true_keys: list[str]) -> Union[
+    Dict[str, bool], None]:
     model = cp_model.CpModel()
 
     # create all vars
     all_vars: Dict[str, cp_model.IntVar] = {}
-    for team in teams:
-        for employee in team.employees:
-            for week in weeks:
-                for day in week.days:
-                    for shift in day.shifts:
-                        for needed_skill in shift.needed_skills:
-                            key = f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"
-                            var = model.NewBoolVar(key)
-                            all_vars[key] = var
-    for key in keys:
+    for key in get_keys(weeks_plus_one, teams):
+        all_vars[key] = model.NewBoolVar(key)
+
+    for key in true_keys:
         model.Add(all_vars[key] == 1)
 
     # Hard constraints
-    add_every_shift_skill_is_assigned(model, weeks, teams, all_vars)
-    add_one_employee_only_one_shift_per_day(model, weeks, teams, all_vars)
-    add_employee_cant_do_what_he_cant(model, weeks, teams, all_vars)
-    add_employees_can_only_work_with_team_members(model, weeks, teams, all_vars)
-    add_one_employee_only_works_five_days_a_week(model, weeks, teams, all_vars)
-    add_one_employee_works_the_same_shift_a_week(model, weeks, teams, all_vars)
-    add_every_employee_have_two_shift_pause(model, weeks, teams, all_vars)
-    add_shift_cycle(model, weeks, teams, all_vars, ["M", "A", "N"])
-    add_at_least_one_shift_manager_per_team_per_day(model, weeks, teams, all_vars)
-    add_one_employee_only_works_five_days_in_a_row(model, weeks, teams, all_vars)
+    add_every_shift_skill_is_assigned(model, weeks_plus_one, teams, all_vars)
+    add_one_employee_only_one_shift_per_day(model, weeks_plus_one, teams, all_vars)
+    add_employee_cant_do_what_he_cant(model, weeks_plus_one, teams, all_vars)
+    add_employees_can_only_work_with_team_members(model, weeks_plus_one, teams, all_vars)
+    add_one_employee_only_works_five_days_a_week(model, weeks_plus_one, teams, all_vars)
+    add_one_employee_works_the_same_shift_a_week(model, weeks_plus_one, teams, all_vars)
+    add_every_employee_have_two_shift_pause(model, weeks_plus_one, teams, all_vars)
+    add_shift_cycle(model, weeks_plus_one, teams, all_vars, ["M", "A", "N"])
+    add_at_least_one_shift_manager_per_team_per_day(model, weeks_plus_one, teams, all_vars)
+    add_one_employee_only_works_five_days_in_a_row(model, weeks_plus_one, teams, all_vars)
 
     # Soft constrains
     minimize_var_work_in_row, transition_cost_per_employee = \
@@ -147,11 +142,34 @@ def main(weeks: List[Week], teams: List[Team], keys) -> Union[Dict[str, bool], N
     return model_result
 
 
+def get_keys(weeks: list[Week], teams: list[Team]) -> list[str]:
+    keys: list[str] = []
+    for team in teams:
+        for employee in team.employees:
+            for week in weeks:
+                for day in week.days:
+                    for shift in day.shifts:
+                        for needed_skill in shift.needed_skills:
+                            keys.append(f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}")
+    return keys
+
+
 if __name__ == "__main__":
-    keys = read_from_excel('hello_world.xlsx')
-    highest_week_number = max([int(k.split('_')[0][4:]) for k in keys])
-    weeks_input, teams_input = create_input_data(4*7 + 1)
-    result = main(weeks_input, teams_input, keys)
+    filename = None  # 'hello_world.xlsx'
+    if filename is not None:
+        keys = read_from_excel(filename)
+        highest_week_number = max([int(k.split('_')[0][4:]) for k in keys])
+    else:
+        keys = []
+        highest_week_number = 0
+    teams_input = get_teams_input_data()
+    weeks_input_plus_one = get_weeks_input_data(highest_week_number * 7 + 4 * 7 +1)
+    weeks_input = get_weeks_input_data(highest_week_number * 7 + 4 * 7)
+    result = main(weeks=weeks_input, weeks_plus_one=weeks_input_plus_one, teams=teams_input, true_keys=keys)
+    needed_keys = get_keys(weeks_input, teams_input)
+    filtered_result = {key: int_var for key, int_var in result.items() if key in needed_keys}
+
     if result is not None:
-        write_to_excel(result, teams_input, weeks_input, ["M", "A", "N"])
+        write_to_excel(filtered_result, teams_input, weeks_input, ["M", "A", "N"],
+                       filename if filename else "hello_world.xlsx")
     # print(result)
