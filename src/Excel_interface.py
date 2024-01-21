@@ -6,11 +6,11 @@ import openpyxl
 from openpyxl.styles import PatternFill, Side, Border, Font
 from openpyxl.workbook import Workbook
 
-from model.Team import Team
-from model.Week import Week
+from src.model.Team import Team
+from src.model.Week import Week
 
 
-def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List[Week], shift_names: list[str]):
+def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List[Week], shift_names: list[str], name_of_excel_file: str):
     workbook = Workbook()
     sheet = workbook.active
     if len(shift_names) > 3:
@@ -101,10 +101,10 @@ def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List
             sheet[
                 f"{this_column}{this_row}"
             ].border = thin_border
-    workbook.save(filename="hello_world.xlsx")
+    workbook.save(filename=name_of_excel_file)
 
 
-def read_from_excel(name_of_excel_file: str):
+def read_from_excel(name_of_excel_file: str) -> list[str]:
     # read
     workbook = openpyxl.load_workbook(name_of_excel_file)
     sheet = workbook.active
