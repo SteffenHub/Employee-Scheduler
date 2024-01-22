@@ -1,11 +1,9 @@
-from typing import List
-
-from model.Day import Day
+from src.model.Day import Day
 
 
 class Week:
 
-    def __init__(self, name: str, days: List[Day]):
+    def __init__(self, name: str, days: list[Day]):
         self.name = name
         self.days = days
 

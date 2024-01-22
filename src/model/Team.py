@@ -1,11 +1,9 @@
-from typing import List
-
-from model.Employee import Employee
+from src.model.Employee import Employee
 
 
 class Team:
 
-    def __init__(self, name: str, employees: List[Employee]):
+    def __init__(self, name: str, employees: list[Employee]):
         self.name = name
         self.employees = employees
 

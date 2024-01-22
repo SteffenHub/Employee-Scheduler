@@ -1,14 +1,13 @@
 import re
-from typing import Dict, List
 
 from openpyxl.styles import PatternFill, Side, Border, Font
 from openpyxl.workbook import Workbook
 
-from model.Team import Team
-from model.Week import Week
+from src.model.Team import Team
+from src.model.Week import Week
 
 
-def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List[Week], shift_names: list[str]):
+def write_to_excel(model_result: dict[str, bool], teams: list[Team], weeks: list[Week], shift_names: list[str]):
     workbook = Workbook()
     sheet = workbook.active
     if len(shift_names) > 3:
@@ -59,12 +58,12 @@ def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List
     sheet["C1"] = "Skills"
 
     # add calendar
-    wochentage = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+    day_names = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
     column = 3
     for week in weeks:
         for j in range(1, len(week.days) + 1):
             index = (j - 1)
-            sheet[f"{columns[column]}{1}"] = wochentage[index]
+            sheet[f"{columns[column]}{1}"] = day_names[index]
             if week.days[index].name == "Sa" or week.days[index].name == "Su":
                 for i in range(1, len([employee for team in teams for employee in team.employees]) * 2 + 1 + 1):
                     sheet[f"{columns[column]}{i}"].fill = colors["weekend"]
@@ -77,7 +76,7 @@ def write_to_excel(model_result: Dict[str, bool], teams: List[Team], weeks: List
             split = key.split("_")
             week, day, shift, team, employee, needed_skill = split[0], split[1], split[2], split[3], split[4], split[5]
             this_column = columns[
-                ((wochentage.index(day) + 1) + 7 * (int(re.search(r'week(\d+)', week, re.I).group(1)) - 1) + 2)]
+                ((day_names.index(day) + 1) + 7 * (int(re.search(r'week(\d+)', week, re.I).group(1)) - 1) + 2)]
             this_row = ([tmp_employee.name for team in teams for tmp_employee in team.employees].index(
                 employee) + 1) * 2
             sheet[

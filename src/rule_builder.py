@@ -1,14 +1,13 @@
 from ortools.sat.python import cp_model
-from typing import Dict, List
 
 from ortools.sat.python.cp_model import IntVar
 
-from model.Team import Team
-from model.Week import Week
+from src.model.Team import Team
+from src.model.Week import Week
 
 
-def add_every_shift_skill_is_assigned(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                      all_vars: Dict[str, cp_model.IntVar]):
+def add_every_shift_skill_is_assigned(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                      all_vars: dict[str, cp_model.IntVar]):
     for week in weeks:
         for day in week.days:
             for shift in day.shifts:
@@ -18,8 +17,8 @@ def add_every_shift_skill_is_assigned(model: cp_model.CpModel, weeks: List[Week]
                     model.AddExactlyOne(rule)
 
 
-def add_one_employee_only_one_shift_per_day(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                            all_vars: Dict[str, cp_model.IntVar]):
+def add_one_employee_only_one_shift_per_day(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                            all_vars: dict[str, cp_model.IntVar]):
     for team in teams:
         for employee in team.employees:
             for week in weeks:
@@ -30,8 +29,8 @@ def add_one_employee_only_one_shift_per_day(model: cp_model.CpModel, weeks: List
                     model.AddAtMostOne(rule)
 
 
-def add_employee_cant_do_what_he_cant(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                      all_vars: Dict[str, cp_model.IntVar]):
+def add_employee_cant_do_what_he_cant(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                      all_vars: dict[str, cp_model.IntVar]):
     for team in teams:
         for employee in team.employees:
             for week in weeks:
@@ -43,8 +42,8 @@ def add_employee_cant_do_what_he_cant(model: cp_model.CpModel, weeks: List[Week]
                                 model.Add(rule == 0)
 
 
-def add_employees_can_only_work_with_team_members(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                  all_vars: Dict[str, cp_model.IntVar]):
+def add_employees_can_only_work_with_team_members(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                  all_vars: dict[str, cp_model.IntVar]):
     for i in range(0, len(teams)):
         for j in range(i + 1, len(teams)):
             for employee1 in teams[i].employees:
@@ -61,8 +60,8 @@ def add_employees_can_only_work_with_team_members(model: cp_model.CpModel, weeks
                                         model.AddBoolOr(rule1, rule2)
 
 
-def add_one_employee_only_works_five_days_a_week(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                 all_vars: Dict[str, cp_model.IntVar]):
+def add_one_employee_only_works_five_days_a_week(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                 all_vars: dict[str, cp_model.IntVar]):
     for team in teams:
         for employee in team.employees:
             for week in weeks:
@@ -75,8 +74,8 @@ def add_one_employee_only_works_five_days_a_week(model: cp_model.CpModel, weeks:
                 ]))
 
 
-def add_one_employee_only_works_five_days_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                   all_vars: Dict[str, cp_model.IntVar]):
+def add_one_employee_only_works_five_days_in_a_row(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                   all_vars: dict[str, cp_model.IntVar]):
     period = {}
     i = 1
     for week in weeks:
@@ -99,20 +98,20 @@ def add_one_employee_only_works_five_days_in_a_row(model: cp_model.CpModel, week
                 model.Add(help_int <= 5)
 
 
-def add_one_employee_works_the_same_shift_a_week(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                 all_vars: Dict[str, cp_model.IntVar]):
+def add_one_employee_works_the_same_shift_a_week(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                 all_vars: dict[str, cp_model.IntVar]):
     unique_key = 1
     for week in weeks:
         for team in teams:
             for employee in team.employees:
                 # keys = M, A, N. Every possible assignment for this employee in this week in shift M/A/N
-                shift_vars: Dict[str, List[cp_model.IntVar]] = {}
+                shift_vars: dict[str, list[cp_model.IntVar]] = {}
                 for day in week.days:
                     for shift in day.shifts:
                         for needed_skill1 in shift.needed_skills:
-                            shift_vars[str(shift)] = [all_vars[
-                                                          f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill1}"]] + \
-                                                     shift_vars[str(shift)] if str(shift) in shift_vars.keys() else [
+                            shift_vars[str(shift)] = (
+                                    [all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill1}"]] +
+                                    shift_vars[str(shift)]) if str(shift) in shift_vars.keys() else [
                                 all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill1}"]]
                 for shift1 in shift_vars.keys():
                     for shift2 in shift_vars.keys():
@@ -122,15 +121,15 @@ def add_one_employee_works_the_same_shift_a_week(model: cp_model.CpModel, weeks:
                             help_var_int = model.NewIntVar(0, len(shift_vars[shift1]),
                                                            f"int_help_{shift1}_{week}_{team}_{employee}_{unique_key}")
                             unique_key = unique_key + 1
-                            # Add if employee works at least ones a week in shift1 then he can't work in shift2 this week
+                            # if employee works at least ones a week in shift1 then he can't work in shift2 this week
                             model.Add(help_var_int == sum(shift_vars[shift1]))
                             model.Add(help_var_int >= 1).OnlyEnforceIf(help_var_bool)
                             model.Add(help_var_int < 1).OnlyEnforceIf(help_var_bool.Not())
                             model.AddBoolAnd([var.Not() for var in shift_vars[shift2]]).OnlyEnforceIf(help_var_bool)
 
 
-def add_every_employee_have_two_shift_pause(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                            all_vars: Dict[str, cp_model.IntVar]):
+def add_every_employee_have_two_shift_pause(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                            all_vars: dict[str, cp_model.IntVar]):
     keys = []
     values = []
     for week in weeks:
@@ -150,19 +149,20 @@ def add_every_employee_have_two_shift_pause(model: cp_model.CpModel, weeks: List
                             model.Add(rule1 == 0).OnlyEnforceIf(rule2)
 
 
-def add_shift_cycle(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                    all_vars: Dict[str, cp_model.IntVar], shift_cycle: list[str]):
+def add_shift_cycle(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                    all_vars: dict[str, cp_model.IntVar], shift_cycle: list[str]):
     for team in teams:
         for i in range(0, len(weeks) - 1):
             for shift in shift_cycle:
                 help_bool_var = model.NewBoolVar(f"help_bool_shift_cycle_{team}_{weeks[i]}_{shift}")
                 work_week_i_shift = [all_vars[f"{weeks[i]}_{day}_{x_shift}_{team}_{employee}_{needed_skill}"]
-                      for day in weeks[i].days
-                      for employee in team.employees
-                      for x_shift in day.shifts
-                      if x_shift.name == shift
-                      for needed_skill in x_shift.needed_skills]
-                help_int_var = model.NewIntVar(0, len(work_week_i_shift), f"help_int_shift_cycle_{team}_{weeks[i]}_{shift}")
+                                     for day in weeks[i].days
+                                     for employee in team.employees
+                                     for x_shift in day.shifts
+                                     if x_shift.name == shift
+                                     for needed_skill in x_shift.needed_skills]
+                help_int_var = model.NewIntVar(0, len(work_week_i_shift),
+                                               f"help_int_shift_cycle_{team}_{weeks[i]}_{shift}")
                 # Add if employee worked at least ones in shift then he works in shift+1 next week
                 model.Add(help_int_var == sum(work_week_i_shift))
                 model.Add(help_int_var > 0).OnlyEnforceIf(help_bool_var)
@@ -178,8 +178,8 @@ def add_shift_cycle(model: cp_model.CpModel, weeks: List[Week], teams: List[Team
                           ).OnlyEnforceIf(help_bool_var)
 
 
-def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                    all_vars: Dict[str, cp_model.IntVar]):
+def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                    all_vars: dict[str, cp_model.IntVar]):
     for team in teams:
         shift_manager = [employee for employee in team.employees if employee.is_shift_manager]
         for week in weeks:
@@ -190,7 +190,8 @@ def add_at_least_one_shift_manager_per_team_per_day(model: cp_model.CpModel, wee
                                      for needed_skill in shift.needed_skills])
 
 
-def add_illness(model: cp_model.CpModel, weeks: List[Week], teams: List[Team], all_vars: Dict[str, cp_model.IntVar], employee: str, ill_week_days: list[str]):
+def add_illness(model: cp_model.CpModel, weeks: list[Week], all_vars: dict[str, cp_model.IntVar],
+                employee: str, ill_week_days: list[str]):
     team, employee = employee.split("_")
     for week_day in ill_week_days:
         ill_week, ill_day = week_day.split("_")
@@ -203,8 +204,8 @@ def add_illness(model: cp_model.CpModel, weeks: List[Week], teams: List[Team], a
                                 model.Add(all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"] == 0)
 
 
-def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                      all_vars: Dict[str, cp_model.IntVar],
+def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                      all_vars: dict[str, cp_model.IntVar],
                                       cost: int) -> tuple[IntVar, dict[str, IntVar]]:
     minimize_list = []
     sum_max_var = (len(weeks) * 7 * cost)
@@ -237,13 +238,14 @@ def add_employee_should_work_in_a_row(model: cp_model.CpModel, weeks: List[Week]
             transitions_mul = model.NewIntVar(0, sum_max_var ** 2, f"transition_mul_{team}_{employee}")
             model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
             minimize_list.append(transitions_mul)
-    var_to_minimize = model.NewIntVar(0, (sum_max_var ** 2) * len([e for t in teams for e in t.employees]), f"minimize_sum_work_in_a_row")
+    var_to_minimize = model.NewIntVar(0, (sum_max_var ** 2) * len([e for t in teams for e in t.employees]),
+                                      f"minimize_sum_work_in_a_row")
     model.Add(var_to_minimize == sum(minimize_list))
     return var_to_minimize, transitions_cost_per_employee
 
 
-def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                   all_vars: Dict[str, cp_model.IntVar], cost: int,
+def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                   all_vars: dict[str, cp_model.IntVar], cost: int,
                                                    night_shift_name: str) -> tuple[IntVar, dict[str, IntVar]]:
     minimize_list = []
     sum_max_var = (len(weeks) * 7 * cost)
@@ -279,18 +281,19 @@ def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, week
             transitions_mul = model.NewIntVar(0, sum_max_var ** 2, f"transition_mul_night_shift_{team}_{employee}")
             model.AddMultiplicationEquality(transitions_mul, [transitions_sum, transitions_sum])
             minimize_list.append(transitions_mul)
-    var_to_minimize = model.NewIntVar(0, (sum_max_var ** 2) * len([e for t in teams for e in t.employees]), f"minimize_sum_work_in_a_row_night_shifts")
+    var_to_minimize = model.NewIntVar(0, (sum_max_var ** 2) * len([e for t in teams for e in t.employees]),
+                                      f"minimize_sum_work_in_a_row_night_shifts")
     model.Add(var_to_minimize == sum(minimize_list))
     return var_to_minimize, transitions_cost_per_employee
 
 
-def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                  all_vars: Dict[str, cp_model.IntVar]):
+def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                  all_vars: dict[str, cp_model.IntVar]):
     maximize_list = []
     for week in weeks:
         for team in teams:
             for employee in team.employees:
-                assignments: dict[str, List[cp_model.IntVar]] = {}
+                assignments: dict[str, list[cp_model.IntVar]] = {}
                 for day in week.days:
                     for shift in day.shifts:
                         for needed_skill in shift.needed_skills:
@@ -302,8 +305,9 @@ def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks
                                     all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"])
                 assignments_sum: dict[str, cp_model.IntVar] = {}
                 for skill in assignments.keys():
-                    assignments_sum[skill] = model.NewIntVar(0, 10000,
-                                                             f"help_var_same_job_a_week_{week}_{team}_{employee}_{skill}")
+                    assignments_sum[skill] = model.NewIntVar(
+                        0, 10000,
+                        f"help_var_same_job_a_week_{week}_{team}_{employee}_{skill}")
                     model.Add(assignments_sum[skill] == sum(assignments[skill]))
                 help_max_var = model.NewIntVar(0, 10000, f"help_var_same_job_a_week_max_var_{week}_{team}_{employee}")
                 model.AddMaxEquality(help_max_var, list(assignments_sum.values()))
@@ -314,10 +318,10 @@ def add_an_employee_should_do_the_same_job_a_week(model: cp_model.CpModel, weeks
     model.Maximize(sum(maximize_list))
 
 
-def add_every_employee_should_do_same_amount_night_shifts(model: cp_model.CpModel, weeks: List[Week], teams: List[Team],
-                                                          all_vars: Dict[str, cp_model.IntVar], cost: int,
+def add_every_employee_should_do_same_amount_night_shifts(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                          all_vars: dict[str, cp_model.IntVar], cost: int,
                                                           night_shift_name: str) -> tuple[IntVar, dict[str, IntVar]]:
-    night_shifts_per_employee_minimize_list: List[cp_model.IntVar] = []
+    night_shifts_per_employee_minimize_list: list[cp_model.IntVar] = []
     night_shift_cost_per_employee: dict[str, cp_model.IntVar] = {}
     max_minimize_value = 0
     for team in teams:

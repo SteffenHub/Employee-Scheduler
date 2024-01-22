@@ -1,26 +1,27 @@
 import time
-from typing import Dict, Union, List
 from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import CpSolverSolutionCallback
 from prettytable import PrettyTable
 
-from Excel_interface import write_to_excel
-from rule_builder import add_every_shift_skill_is_assigned, add_one_employee_only_one_shift_per_day, \
-    add_employee_cant_do_what_he_cant, add_employees_can_only_work_with_team_members, \
-    add_one_employee_only_works_five_days_a_week, add_one_employee_works_the_same_shift_a_week, \
-    add_every_employee_have_two_shift_pause, add_shift_cycle, add_at_least_one_shift_manager_per_team_per_day, \
-    add_one_employee_only_works_five_days_in_a_row, add_an_employee_should_do_the_same_job_a_week, \
-    add_employee_should_work_in_a_row, add_employee_should_work_night_shifts_in_a_row, \
-    add_every_employee_should_do_same_amount_night_shifts, add_illness
+from src.excel_interface import write_to_excel
+from src.rule_builder import (add_every_shift_skill_is_assigned, add_one_employee_only_one_shift_per_day,
+                              add_employee_cant_do_what_he_cant, add_employees_can_only_work_with_team_members,
+                              add_one_employee_only_works_five_days_a_week,
+                              add_one_employee_works_the_same_shift_a_week,
+                              add_every_employee_have_two_shift_pause, add_shift_cycle,
+                              add_at_least_one_shift_manager_per_team_per_day,
+                              add_one_employee_only_works_five_days_in_a_row, add_employee_should_work_in_a_row,
+                              add_employee_should_work_night_shifts_in_a_row,
+                              add_every_employee_should_do_same_amount_night_shifts, add_illness)
 
-from model.Input_data_creator import create_input_data
-from model.Team import Team
-from model.Week import Week
+from src.model.Input_data_creator import create_input_data
+from src.model.Team import Team
+from src.model.Week import Week
 
 
 class MySolutionPrinter(CpSolverSolutionCallback):
     def __init__(self, transition_cost: dict[str, cp_model.IntVar], night_transitions: dict[str, cp_model.IntVar],
-                 night_shift_distribution: Dict[str, cp_model.IntVar]):
+                 night_shift_distribution: dict[str, cp_model.IntVar]):
         CpSolverSolutionCallback.__init__(self)
         self.solution_count = 0
         self.start_time = time.time()
@@ -31,7 +32,7 @@ class MySolutionPrinter(CpSolverSolutionCallback):
     def on_solution_callback(self) -> None:
         table = PrettyTable()
         table.field_names = ["Team", "Employee", "transitions", "transition_cost", "night_transitions",
-                             "night_transitions_cost", "night_shift_distibution", "night_shift_distribution cost",
+                             "night_transitions_cost", "night_shift_distribution", "night_shift_distribution cost",
                              "sum_costs"]
 
         print(f"Solution {self.solution_count}, time {time.time() - self.start_time}s")
@@ -43,7 +44,8 @@ class MySolutionPrinter(CpSolverSolutionCallback):
         night_shift_distribution_cost_sum = 0
         for i, teamEmployee in enumerate(self.transition_cost.keys()):
             team, employee = teamEmployee.split(":")
-            next_team = list(self.transition_cost.keys())[i+1].split(":")[0] if i < len(self.transition_cost)-1 else team
+            next_team = list(self.transition_cost.keys())[i + 1].split(":")[0] if i < len(
+                self.transition_cost) - 1 else team
             transitions = int(self.Value(self.transition_cost[teamEmployee]) / 3)
             transitions_sum += transitions
             transitions_cost = self.Value(self.transition_cost[teamEmployee]) ** 2
@@ -76,10 +78,9 @@ class MySolutionPrinter(CpSolverSolutionCallback):
         self.solution_count += 1
 
 
-def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar], transitions: dict[str, cp_model.IntVar],
-              night_transitions: Dict[str, cp_model.IntVar], night_shift_distribution: Dict[str, cp_model.IntVar]) -> \
-        Union[
-            Dict[str, bool], None]:
+def get_model(model: cp_model.CpModel, all_vars: dict[str, cp_model.IntVar], transitions: dict[str, cp_model.IntVar],
+              night_transitions: dict[str, cp_model.IntVar], night_shift_distribution: dict[str, cp_model.IntVar]) -> \
+        dict[str, bool] | None:
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 8
     solver.parameters.max_time_in_seconds = 120.0
@@ -100,11 +101,11 @@ def get_model(model: cp_model.CpModel, all_vars: Dict[str, cp_model.IntVar], tra
         return None
 
 
-def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
+def main(weeks: list[Week], teams: list[Team]) -> dict[str, bool] | None:
     model = cp_model.CpModel()
 
     # create all vars
-    all_vars: Dict[str, cp_model.IntVar] = {}
+    all_vars: dict[str, cp_model.IntVar] = {}
     for team in teams:
         for employee in team.employees:
             for week in weeks:
@@ -126,7 +127,7 @@ def main(weeks: List[Week], teams: List[Team]) -> Union[Dict[str, bool], None]:
     add_shift_cycle(model, weeks, teams, all_vars, ["M", "A", "N"])
     add_at_least_one_shift_manager_per_team_per_day(model, weeks, teams, all_vars)
     add_one_employee_only_works_five_days_in_a_row(model, weeks, teams, all_vars)
-    add_illness(model, weeks, teams, all_vars, "Team1_P5", [f"Week1_{day.name}" for day in weeks[0].days])
+    add_illness(model, weeks, all_vars, "Team1_P5", [f"Week1_{day.name}" for day in weeks[0].days])
 
     # Soft constrains
     minimize_var_work_in_row, transition_cost_per_employee = \

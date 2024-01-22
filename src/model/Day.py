@@ -1,11 +1,9 @@
-from typing import List
-
-from model.Shift import Shift
+from src.model.Shift import Shift
 
 
 class Day:
 
-    def __init__(self, name: str, shifts: List[Shift]):
+    def __init__(self, name: str, shifts: list[Shift]):
         self.name = name
         self.shifts = shifts
 
