@@ -5,17 +5,17 @@ from src.model.Skill import Skill
 from src.model.Team import Team
 from src.model.Week import Week
 
+skills: dict[str, Skill] = {"MO:M1": Skill("MO:M1"),
+                            "H1:M1": Skill("H1:M1"),
+                            "H2:M1": Skill("H2:M1"),
+                            "H:M2": Skill("H:M2"),
+                            "MO:M3": Skill("MO:M3"),
+                            "H:M3": Skill("H:M3"),
+                            "MO:M4": Skill("MO:M4")}
+helper = [skills["H1:M1"], skills["H2:M1"], skills["H:M2"], skills["H:M3"]]
 
-def create_input_data() -> tuple[list[Week], list[Team]]:
-    # create Skills
-    skills: dict[str, Skill] = {"MO:M1": Skill("MO:M1"),
-                                "H1:M1": Skill("H1:M1"),
-                                "H2:M1": Skill("H2:M1"),
-                                "H:M2": Skill("H:M2"),
-                                "MO:M3": Skill("MO:M3"),
-                                "H:M3": Skill("H:M3"),
-                                "MO:M4": Skill("MO:M4")}
-    helper = [skills["H1:M1"], skills["H2:M1"], skills["H:M2"], skills["H:M3"]]
+
+def get_teams_input_data() -> list[Team]:
     teams: list[Team] = []
     # Team 1
     employees: list[Employee] = [Employee("P1", [skills["MO:M1"], skills["MO:M3"]] + helper, is_shift_manager=True),
@@ -57,46 +57,58 @@ def create_input_data() -> tuple[list[Week], list[Team]]:
                                  Employee("P33", helper),
                                  Employee("P34", [skills["MO:M4"]] + helper)]
     teams.append(Team("Team3", employees))
+    return teams
 
+
+def get_weeks_input_data(number_of_days: int) -> list[Week]:
     skills_m1: list[Skill] = [skills["MO:M1"], skills["H1:M1"], skills["H2:M1"]]
     skills_m2: list[Skill] = [skills["H:M2"]]
     skills_m3: list[Skill] = [skills["MO:M3"], skills["H:M3"]]
     skills_m4: list[Skill] = [skills["MO:M4"]]
 
     # create days and shifts
-    mo = Day("Mo",
-             [Shift("M", skills_m1 + skills_m3 + skills_m4),
-              Shift("A", skills_m1 + skills_m2 + skills_m3 + skills_m4),
-              Shift("N", skills_m1 + skills_m2 + skills_m3 + skills_m4)])
-    tu = Day("Tu",
-             [Shift("M", skills_m1 + skills_m2 + skills_m3 + skills_m4),
-              Shift("A", skills_m1 + skills_m2 + skills_m3 + skills_m4),
-              Shift("N", skills_m1 + skills_m2 + skills_m3 + skills_m4)])
-    we = Day("We",
-             [Shift("M", skills_m1 + skills_m2 + skills_m3 + skills_m4),
-              Shift("A", skills_m1 + skills_m2 + skills_m3 + skills_m4),
-              Shift("N", skills_m1 + skills_m2 + skills_m3 + skills_m4)])
-    th = Day("Th",
-             [Shift("M", skills_m1 + skills_m2 + skills_m3 + skills_m4),
-              Shift("A", skills_m1 + skills_m2 + skills_m3 + skills_m4),
-              Shift("N", skills_m1 + skills_m2 + skills_m3 + skills_m4)])
-    fr = Day("Fr",
-             [Shift("M", skills_m1 + skills_m2 + skills_m3 + skills_m4),
-              Shift("A", skills_m1 + skills_m2 + skills_m3 + skills_m4),
-              Shift("N", skills_m1 + skills_m2 + skills_m3 + skills_m4)])
-    sa = Day("Sa",
-             [Shift("M", skills_m1 + skills_m2 + skills_m3),
-              Shift("A", skills_m1 + skills_m3),
-              Shift("N", skills_m1 + skills_m3)])
-    su = Day("Su",
-             [Shift("M", skills_m1 + skills_m3),
-              Shift("A", skills_m1 + skills_m3),
-              Shift("N", skills_m1 + skills_m3)])
-    days: list[Day] = [mo, tu, we, th, fr, sa, su]
+    days: list[Day] = []
+    days.append(Day("Mo",
+                    [Shift("M", skills_m1 + skills_m3 + skills_m4),
+                     Shift("A", skills_m1 + skills_m2 + skills_m3 + skills_m4),
+                     Shift("N", skills_m1 + skills_m2 + skills_m3 + skills_m4)]))
+    days.append(Day("Tu",
+                    [Shift("M", skills_m1 + skills_m2 + skills_m3 + skills_m4),
+                     Shift("A", skills_m1 + skills_m2 + skills_m3 + skills_m4),
+                     Shift("N", skills_m1 + skills_m2 + skills_m3 + skills_m4)]))
+    days.append(Day("We",
+                    [Shift("M", skills_m1 + skills_m2 + skills_m3 + skills_m4),
+                     Shift("A", skills_m1 + skills_m2 + skills_m3 + skills_m4),
+                     Shift("N", skills_m1 + skills_m2 + skills_m3 + skills_m4)]))
+    days.append(Day("Th",
+                    [Shift("M", skills_m1 + skills_m2 + skills_m3 + skills_m4),
+                     Shift("A", skills_m1 + skills_m2 + skills_m3 + skills_m4),
+                     Shift("N", skills_m1 + skills_m2 + skills_m3 + skills_m4)]))
+    days.append(Day("Fr",
+                    [Shift("M", skills_m1 + skills_m2 + skills_m3 + skills_m4),
+                     Shift("A", skills_m1 + skills_m2 + skills_m3 + skills_m4),
+                     Shift("N", skills_m1 + skills_m2 + skills_m3 + skills_m4)]))
+    days.append(Day("Sa",
+                    [Shift("M", skills_m1 + skills_m2 + skills_m3),
+                     Shift("A", skills_m1 + skills_m3),
+                     Shift("N", skills_m1 + skills_m3)]))
+    days.append(Day("Su",
+                    [Shift("M", skills_m1 + skills_m3),
+                     Shift("A", skills_m1 + skills_m3),
+                     Shift("N", skills_m1 + skills_m3)]))
 
-    weeks: list[Week] = [Week("Week1", days),
-                         Week("Week2", days),
-                         Week("Week3", days),
-                         Week("Week4", days)]
+    weeks = []
+    days_for_week = []
+    i = 0
+    week_number = 1
+    while i < number_of_days:
+        if i % 7 == 0 and i != 0:
+            weeks.append(Week(f"Week{week_number}", days_for_week))
+            week_number += 1
+            days_for_week = []
+        days_for_week.append(days[i % 7])
+        i += 1
+    if days_for_week:
+        weeks.append(Week(f"Week{week_number}", days_for_week))
 
-    return weeks, teams
+    return weeks
