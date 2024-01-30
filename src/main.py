@@ -3,7 +3,7 @@ from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import CpSolverSolutionCallback
 from prettytable import PrettyTable
 
-from src.excel_interface import write_to_excel
+from src.excel_interface import write_to_excel, read_from_excel
 from src.rule_builder import (add_every_shift_skill_is_assigned, add_one_employee_only_one_shift_per_day,
                               add_employee_cant_do_what_he_cant, add_employees_can_only_work_with_team_members,
                               add_one_employee_only_works_five_days_a_week,
@@ -170,5 +170,5 @@ if __name__ == "__main__":
     filtered_result = {key: int_var for key, int_var in result.items() if key in needed_keys}
 
     if result is not None:
-        write_to_excel(result, teams_input, weeks_input, ["M", "A", "N"])
-    # print(result)
+        write_to_excel(filtered_result, teams_input, weeks_input, ["M", "A", "N"],
+                       filename if filename else "hello_world.xlsx")
