@@ -98,6 +98,30 @@ def add_one_employee_only_works_five_days_in_a_row(model: cp_model.CpModel, week
                 model.Add(help_int <= 5)
 
 
+def add_one_employee_works_max_seven_days_in_a_row(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                   all_vars: dict[str, cp_model.IntVar]):
+    period = {}
+    i = 1
+    for week in weeks:
+        for day in week.days:
+            period[i] = {"week": week, "day": day}
+            i = i + 1
+
+    for team in teams:
+        for employee in team.employees:
+            unique_index = 0
+            for i in range(1, len(period) - 6):
+                days_worked = []
+                for j in range(i, i + 8):
+                    [days_worked.append(
+                        all_vars[f"{period[j]['week']}_{period[j]['day']}_{shift}_{team}_{employee}_{needed_skill}"])
+                        for shift in period[j]['day'].shifts for needed_skill in shift.needed_skills]
+                help_int = model.NewIntVar(0, 8, f"int_var_help_six_days_a_row_{team}_{employee}_{unique_index}")
+                unique_index = unique_index + 1
+                model.Add(help_int == sum(days_worked))
+                model.Add(help_int <= 7)
+
+
 def add_one_employee_works_the_same_shift_a_week(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
                                                  all_vars: dict[str, cp_model.IntVar]):
     unique_key = 1
@@ -344,3 +368,45 @@ def add_every_employee_should_do_same_amount_night_shifts(model: cp_model.CpMode
     minimize_value = model.NewIntVar(0, max_minimize_value, f"minimize_value_for_same_night_shift_amount")
     model.Add(minimize_value == sum(night_shifts_per_employee_minimize_list))
     return minimize_value, night_shift_cost_per_employee
+
+
+def add_one_employee_should_work_max_five_days_in_a_row(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                        all_vars: dict[str, cp_model.IntVar], cost: int):
+    period = {}
+    i = 1
+    for week in weeks:
+        for day in week.days:
+            period[i] = {"week": week, "day": day}
+            i = i + 1
+    minimize_list = []
+    five_days_a_row_cost_per_employee: dict[str, cp_model.IntVar] = {}
+    for team in teams:
+        for employee in team.employees:
+            unique_index = 0
+            over_time = []
+            for i in range(1, len(period) - 5, 2):
+                days_worked = []
+                for j in range(i, i + 7):
+                    [days_worked.append(
+                        all_vars[f"{period[j]['week']}_{period[j]['day']}_{shift}_{team}_{employee}_{needed_skill}"])
+                        for shift in period[j]['day'].shifts for needed_skill in shift.needed_skills]
+                help_int = model.NewIntVar(0, 7, f"int_var_help_should_work_six_days_a_row_{team}_{employee}_{unique_index}")
+                unique_index = unique_index + 1
+                model.Add(help_int == sum(days_worked))
+
+                help_more_than_five = model.NewBoolVar(f"help_var_more_than_five_{team}_{employee}_{unique_index}")
+                model.Add(help_int > 5).OnlyEnforceIf(help_more_than_five)
+                model.Add(help_int <= 5).OnlyEnforceIf(help_more_than_five.Not())
+                over_time_help = model.NewIntVar(0, 2, f"int_var_help_over_time_should_work_five_days_a_row_{team}_{employee}_{unique_index}")
+                model.Add(over_time_help == 0).OnlyEnforceIf(help_more_than_five.Not())
+                model.Add(over_time_help == help_int - 5).OnlyEnforceIf(help_more_than_five)
+                over_time.append(over_time_help)
+
+            five_days_a_row_sum = model.NewIntVar(0, cost * len(over_time), f"int_var_help_should_work_six_days_a_row_sum_{team}_{employee}_{unique_index}")
+            model.Add(five_days_a_row_sum == cost * sum(over_time))
+            five_days_a_row_cost_per_employee[f"{team}:{employee}"] = five_days_a_row_sum
+
+            five_days_mul = model.NewIntVar(0, (cost * len(over_time)) ** 2, f"int_var_help_should_work_six_days_a_row_mul_{team}_{employee}_{unique_index}")
+            model.AddMultiplicationEquality(five_days_mul, [five_days_a_row_sum, five_days_a_row_sum])
+            minimize_list.append(five_days_mul)
+    return sum(minimize_list), five_days_a_row_cost_per_employee
