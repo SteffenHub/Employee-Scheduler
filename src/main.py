@@ -62,7 +62,7 @@ class MySolutionPrinter(CpSolverSolutionCallback):
             night_shift_distribution_sum += night_shift_distribution
             night_shift_distribution_cost = self.Value(self.night_shift_distribution[teamEmployee]) ** 2
             night_shift_distribution_cost_sum += night_shift_distribution_cost
-            five_days_a_row = int(self.Value(self.five_days_a_row_cost[teamEmployee]) / 10)
+            five_days_a_row = int(self.Value(self.five_days_a_row_cost[teamEmployee]) / 10000)
             five_days_a_row_sum += five_days_a_row
             five_days_a_row_cost = self.Value(self.five_days_a_row_cost[teamEmployee]) ** 2
             five_days_a_row_cost_sum += five_days_a_row_cost
@@ -108,6 +108,8 @@ def get_model(model: cp_model.CpModel, all_vars: dict[str, cp_model.IntVar], tra
             print("INFEASIBLE")
         if status == cp_model.UNKNOWN:
             print("UNKNOWN")
+        if status == cp_model.MODEL_INVALID:
+            print("MODEL_INVALID")
         return None
 
 
@@ -145,7 +147,7 @@ def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_
     minimize_var_same_night_shift_amount_per_employee, night_shift_cost_per_employee = \
         add_every_employee_should_do_same_amount_night_shifts(model, weeks, teams, all_vars, 7, "N")
     # add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
-    minimize_five_days_a_row, five_days_a_row_cost_per_employee = add_one_employee_should_work_max_five_days_in_a_row(model, weeks, teams, all_vars, 10000000)
+    minimize_five_days_a_row, five_days_a_row_cost_per_employee = add_one_employee_should_work_max_five_days_in_a_row(model, weeks, teams, all_vars, 10000)
     model.Minimize(
         minimize_var_work_in_row +
         minimize_var_work_in_row_at_night +
