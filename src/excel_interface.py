@@ -29,7 +29,9 @@ def write_to_excel(model_result: dict[str, bool], teams: list[Team], weeks: list
               "weekend": PatternFill(start_color='f3af9a', end_color='f3af9a', fill_type='solid'),
               "Team1": PatternFill(start_color='fff2cc', end_color='fff2cc', fill_type='solid'),
               "Team2": PatternFill(start_color='e2f0d9', end_color='e2f0d9', fill_type='solid'),
-              "Team3": PatternFill(start_color='deebf7', end_color='deebf7', fill_type='solid')}
+              "Team3": PatternFill(start_color='deebf7', end_color='deebf7', fill_type='solid'),
+              "vac": PatternFill(start_color='e6e905', end_color='e6e905', fill_type='solid'),
+              "ill": PatternFill(start_color='ff4000', end_color='ff4000', fill_type='solid')}
     thin_border = Border(left=Side(style='thin'),
                          right=Side(style='thin'),
                          top=Side(style='thin'),
