@@ -17,7 +17,7 @@ from src.rule_builder import (add_every_shift_skill_is_assigned, add_one_employe
                               add_one_employee_works_max_ten_days_in_a_row,
                               add_one_employee_should_work_max_ten_days_in_a_row,
                               add_every_employee_should_do_same_amount_of_shifts,
-                              add_vac_not_in_ill, add_absence_manually)
+                              add_vac_not_in_ill, add_absence_manually, add_employee_works_night_shifts_in_a_row)
 
 from model.Input_data_creator import get_teams_input_data, get_weeks_input_data
 from model.Team import Team
@@ -260,14 +260,15 @@ def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_
     add_every_employee_have_two_shift_pause(model, weeks_plus_one, teams, all_vars)
     add_shift_cycle(model, weeks_plus_one, teams, all_vars, ["M", "A", "N"])
     add_at_least_one_shift_manager_per_team_per_day(model, weeks_plus_one, teams, all_vars)
-    # add_one_employee_only_works_five_days_in_a_row(model, weeks_plus_one, teams, all_vars)
-    add_one_employee_works_max_ten_days_in_a_row(model, weeks_plus_one, teams, all_vars)
+    add_one_employee_only_works_five_days_in_a_row(model, weeks_plus_one, teams, all_vars)
+    #add_one_employee_works_max_ten_days_in_a_row(model, weeks_plus_one, teams, all_vars)
     # add_illness_manually(model, weeks, all_vars, "Team1_P5", [f"Week1_{day.name}" for day in weeks[0].days])
     #add_absence_manually(model, weeks, all_vars, "Team1_P6", [f"Week1_{day.name}" for day in weeks[0].days])
     #add_absence_manually(model, weeks, all_vars, "Team1_P6", [f"Week2_{day.name}" for day in weeks[0].days[:3]])
-    add_vacations(model, weeks, teams, all_vars)
-    add_illness(model, weeks, teams, all_vars)
-    add_vac_not_in_ill(model, weeks, teams, all_vars)
+    #add_vacations(model, weeks, teams, all_vars)
+    #add_illness(model, weeks, teams, all_vars)
+    #add_vac_not_in_ill(model, weeks, teams, all_vars)
+    add_employee_works_night_shifts_in_a_row(model, weeks, teams, all_vars, "N")
 
     # Soft constrains
     minimize_var_work_in_row, transition_cost_per_employee = \
@@ -280,12 +281,12 @@ def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_
     # add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
     # minimize_five_days_a_row, five_days_a_row_cost_per_employee = add_one_employee_should_work_max_five_days_in_a_row(model, weeks, teams, all_vars, 10000)
     minimize_ten_days_a_row, ten_days_a_row_cost_per_employee = add_one_employee_should_work_max_ten_days_in_a_row(model, weeks, teams, all_vars, 10000)
-    model.Minimize(
-        minimize_var_work_in_row +
-        minimize_var_work_in_row_at_night +
-        minimize_var_same_night_shift_amount_per_employee +
-        minimize_var_same_shift_amount_per_employee +
-        minimize_ten_days_a_row)
+    #model.Minimize(
+    #    minimize_var_work_in_row +
+    #    minimize_var_work_in_row_at_night +
+    #    minimize_var_same_night_shift_amount_per_employee +
+    #    minimize_var_same_shift_amount_per_employee +
+    #    minimize_ten_days_a_row)
     print("All Rules added. Start Solver")
     model_result = get_model(model, all_vars, transition_cost_per_employee, night_transition_cost_per_employee,
                              night_shift_cost_per_employee, shift_cost_per_employee, ten_days_a_row_cost_per_employee, teams, weeks)
