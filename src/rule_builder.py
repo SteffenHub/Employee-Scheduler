@@ -33,13 +33,14 @@ def add_employee_cant_do_what_he_cant(model: cp_model.CpModel, weeks: list[Week]
                                       all_vars: dict[str, cp_model.IntVar]):
     for team in teams:
         for employee in team.employees:
-            for week in weeks:
-                for day in week.days:
-                    for shift in day.shifts:
-                        for needed_skill in shift.needed_skills:
-                            if needed_skill not in employee.skills:
-                                rule = all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]
-                                model.Add(rule == 0)
+            if employee.fixed_skills:
+                for week in weeks:
+                    for day in week.days:
+                        for shift in day.shifts:
+                            for needed_skill in shift.needed_skills:
+                                if needed_skill not in employee.skills:
+                                    rule = all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]
+                                    model.Add(rule == 0)
 
 
 def add_employees_can_only_work_with_team_members(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
@@ -273,8 +274,8 @@ def add_employee_works_night_shifts_in_a_row(model: cp_model.CpModel, weeks: lis
                                                    all_vars: dict[str, cp_model.IntVar], night_shift_name: str):
     for team in teams:
         for employee in team.employees:
-            work_days_at_night = []
             for week in weeks:
+                work_days_at_night = []
                 for day in week.days:
                     works_in_night_shift = model.NewBoolVar(
                         f"help_var_{team}_{employee}_works_in_night_shift_on_{week}_{day}")
@@ -285,18 +286,18 @@ def add_employee_works_night_shifts_in_a_row(model: cp_model.CpModel, weeks: lis
                     model.Add(sum(possible_night_assignments) > 0).OnlyEnforceIf(works_in_night_shift)
                     model.Add(sum(possible_night_assignments) == 0).OnlyEnforceIf(works_in_night_shift.Not())
                     work_days_at_night.append(works_in_night_shift)
-            transitions_night = []
-            # create transition list
-            for i in range(0, len(work_days_at_night) - 1):
-                is_transition = model.NewBoolVar(
-                    f"help_bool_var_transition_in_night_shift_{team}_{employee}_{i}_{i + 1}")
-                model.Add(work_days_at_night[i] != work_days_at_night[i + 1]).OnlyEnforceIf(is_transition)
-                model.Add(work_days_at_night[i] == work_days_at_night[i + 1]).OnlyEnforceIf(is_transition.Not())
-                transitions_night.append(is_transition)
-            # add one more transition if employee works on first Monday.
-            # So it isn't better to work on first Monday to have fewer transitions
-            transitions_night.append(work_days_at_night[0])
-            model.Add(sum(transitions_night) <= 2)
+                transitions_night = []
+                # create transition list
+                for i in range(0, len(work_days_at_night) - 1):
+                    is_transition = model.NewBoolVar(
+                        f"help_bool_var_transition_in_night_shift_{team}_{employee}_{i}_{i + 1}")
+                    model.Add(work_days_at_night[i] != work_days_at_night[i + 1]).OnlyEnforceIf(is_transition)
+                    model.Add(work_days_at_night[i] == work_days_at_night[i + 1]).OnlyEnforceIf(is_transition.Not())
+                    transitions_night.append(is_transition)
+                # add one more transition if employee works on first Monday.
+                # So it isn't better to work on first Monday to have fewer transitions
+                transitions_night.append(work_days_at_night[0])
+                model.Add(sum(transitions_night) <= 2)
 
 
 def add_employee_should_work_night_shifts_in_a_row(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
@@ -608,4 +609,65 @@ def add_vac_not_in_ill(model: cp_model.CpModel, weeks: list[Week], teams: list[T
             for week in weeks:
                 for day in week.days:
                     model.Add(all_vars[f"{week}_{day}_ill_{team}_{employee}_ill"] + all_vars[f"{week}_{day}_vac_{team}_{employee}_vac"] <= 1)
+
+
+def add_minimize_needed_skills(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                        all_vars: dict[str, cp_model.IntVar], cost: int):
+    skills_employee: dict[str, dict[str, cp_model.IntVar]] = {}
+    for team in teams:
+        for employee in team.employees:
+            empl_skills: dict[str, list[cp_model.IntVar]] = {}
+            for week in weeks:
+                for day in week.days:
+                    for shift in day.shifts:
+                        for needed_skill in shift.needed_skills:
+                            if str(needed_skill) not in empl_skills.keys():
+                                empl_skills[str(needed_skill)] = [all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]]
+                            else:
+                                empl_skills[str(needed_skill)].append(all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"])
+            for skill_name, skills in empl_skills.items():
+                int_var = model.NewIntVar(0, len(skills), f"help_var_minimize_needed_skills_{team}_{employee}_{skills}")
+                model.Add(int_var == sum(skills))
+                has_skill = model.NewBoolVar(f"help_var_has_skill_{team}_{employee}_{skill_name}")
+                model.Add(int_var > 0).OnlyEnforceIf(has_skill)
+                model.Add(int_var == 0).OnlyEnforceIf(has_skill.Not())
+                if f"{team}_{employee}" not in skills_employee.keys():
+                    skills_employee[f"{team}_{employee}"] = {}
+                skills_employee[f"{team}_{employee}"][skill_name] = has_skill
+            true_var = model.NewBoolVar(f"TRUE_VAR")
+            model.Add(true_var == 1)
+            if employee.fixed_skills:
+                for skill in employee.skills:
+                    skills_employee[f"{team}_{employee}"][str(skill)] = true_var
+    minimize_list = []
+    for team, employee_skills in skills_employee.items():
+        for skill, has_skill in employee_skills.items():
+            minimize_list.append(has_skill)
+    return skills_employee, sum(minimize_list)
+
+
+def add_minimize_needed_employees(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
+                                                        all_vars: dict[str, cp_model.IntVar], cost: int):
+    minimize_list = []
+    for team in teams:
+        for employee in team.employees:
+            if employee.fixed_skills:
+                continue
+            needed_times = [
+                all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]
+                for week in weeks
+                for day in week.days
+                for shift in day.shifts
+                for needed_skill in shift.needed_skills
+                      ]
+            needed = model.NewBoolVar(f"help_var_needed_{team}_{employee}")
+            model.Add(sum(needed_times) > 0).OnlyEnforceIf(needed)
+            model.Add(sum(needed_times) == 0).OnlyEnforceIf(needed.Not())
+            minimize_list.append(needed * cost)
+    return sum(minimize_list)
+
+
+
+
+
 

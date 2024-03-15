@@ -17,7 +17,8 @@ from src.rule_builder import (add_every_shift_skill_is_assigned, add_one_employe
                               add_one_employee_works_max_ten_days_in_a_row,
                               add_one_employee_should_work_max_ten_days_in_a_row,
                               add_every_employee_should_do_same_amount_of_shifts,
-                              add_vac_not_in_ill, add_absence_manually, add_employee_works_night_shifts_in_a_row)
+                              add_vac_not_in_ill, add_absence_manually, add_employee_works_night_shifts_in_a_row,
+                              add_minimize_needed_skills, add_minimize_needed_employees)
 
 from model.Input_data_creator import get_teams_input_data, get_weeks_input_data
 from model.Team import Team
@@ -171,6 +172,21 @@ class MySolutionPrinter(CpSolverSolutionCallback):
                     f.write(string + '\n')
 
 
+class MyAnalysisSolutionPrinter(CpSolverSolutionCallback):
+    def __init__(self, data):
+        CpSolverSolutionCallback.__init__(self)
+        self.solution_count = 0
+        self.start_time = time.time()
+        self.data = data
+
+    def on_solution_callback(self) -> None:
+        print(f"Solution {self.solution_count}, time {time.time() - self.start_time}s, objective {self.ObjectiveValue()}")
+        self.solution_count += 1
+        for empl, skills in self.data.items():
+            print(f"{empl} : {[skill for skill, value in skills.items() if self.Value(value) == 1]}")
+        if self.solution_count >= 5:
+            self.StopSearch()
+
 def get_model(model: cp_model.CpModel, all_vars: dict[str, cp_model.IntVar], transitions: dict[str, cp_model.IntVar],
               night_transitions: dict[str, cp_model.IntVar], night_shift_distribution: dict[str, cp_model.IntVar], shift_distribution: dict[str, cp_model.IntVar], ten_days_a_row_cost: dict[str, list[cp_model.IntVar]], teams:list[Team], weeks: list[Week]) -> \
         dict[str, bool] | None:
@@ -281,6 +297,32 @@ def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_
     # add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
     # minimize_five_days_a_row, five_days_a_row_cost_per_employee = add_one_employee_should_work_max_five_days_in_a_row(model, weeks, teams, all_vars, 10000)
     minimize_ten_days_a_row, ten_days_a_row_cost_per_employee = add_one_employee_should_work_max_ten_days_in_a_row(model, weeks, teams, all_vars, 10000)
+
+    skills_employee, minimize_skills_cost = add_minimize_needed_skills(model, weeks, teams, all_vars, 0)
+    minimize_needed_empl = add_minimize_needed_employees(model, weeks, teams, all_vars, 100)
+    model.Minimize(minimize_needed_empl + minimize_skills_cost)
+
+    print("All Rules added. Start Solver")
+    solver = cp_model.CpSolver()
+    solver.parameters.num_search_workers = 8
+    solver.parameters.max_time_in_seconds = 1200.0
+    status = solver.Solve(model, MyAnalysisSolutionPrinter(skills_employee))
+    if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
+        if status == cp_model.OPTIMAL:
+            print("OPTIMAL")
+        if status == cp_model.FEASIBLE:
+            print("FEASIBLE")
+        for empl, skills in skills_employee.items():
+            print(f"{empl} : {[skill for skill, value in skills.items() if solver.Value(value) == 1]}")
+        return {var: solver.Value(all_vars[var]) == 1 for var in all_vars.keys()}
+    else:
+        if status == cp_model.INFEASIBLE:
+            print("INFEASIBLE")
+        if status == cp_model.UNKNOWN:
+            print("UNKNOWN")
+        if status == cp_model.MODEL_INVALID:
+            print("MODEL_INVALID")
+        return None
     #model.Minimize(
     #    minimize_var_work_in_row +
     #    minimize_var_work_in_row_at_night +
