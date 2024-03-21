@@ -281,9 +281,9 @@ def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_
     # add_illness_manually(model, weeks, all_vars, "Team1_P5", [f"Week1_{day.name}" for day in weeks[0].days])
     #add_absence_manually(model, weeks, all_vars, "Team1_P6", [f"Week1_{day.name}" for day in weeks[0].days])
     #add_absence_manually(model, weeks, all_vars, "Team1_P6", [f"Week2_{day.name}" for day in weeks[0].days[:3]])
-    #add_vacations(model, weeks, teams, all_vars)
-    #add_illness(model, weeks, teams, all_vars)
-    #add_vac_not_in_ill(model, weeks, teams, all_vars)
+    add_vacations(model, weeks, teams, all_vars, 2, 4)
+    add_illness(model, weeks, teams, all_vars, 1, 3)
+    add_vac_not_in_ill(model, weeks, teams, all_vars)
     add_employee_works_night_shifts_in_a_row(model, weeks, teams, all_vars, "N")
 
     # Soft constrains
