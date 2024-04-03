@@ -171,21 +171,44 @@ class MySolutionPrinter(CpSolverSolutionCallback):
                 for string in output:
                     f.write(string + '\n')
 
+            values_till_now = [str(transitions_sum), str(transitions_cost_sum),
+                               str(night_transition_sum), str(night_transitions_cost_sum),
+                               str(night_shift_distribution_sum), str(night_shift_distribution_cost_sum),
+                               str(shift_distribution_sum), str(shift_distribution_cost_sum),
+                               str(ten_days_a_row_sum), str(ten_days_a_row_cost_sum),
+                               self.ObjectiveValue()]
+            with open(f'values_{time_now}.txt', 'w') as f:
+                for string in values_till_now:
+                    f.write(str(string) + '\n')
+
 
 class MyAnalysisSolutionPrinter(CpSolverSolutionCallback):
-    def __init__(self, data):
+    def __init__(self, data, all_vars):
         CpSolverSolutionCallback.__init__(self)
         self.solution_count = 0
         self.start_time = time.time()
         self.data = data
+        self.all_vars = all_vars
 
     def on_solution_callback(self) -> None:
-        print(f"Solution {self.solution_count}, time {time.time() - self.start_time}s, objective {self.ObjectiveValue()}")
+        print(
+            f"Solution {self.solution_count}, time {time.time() - self.start_time}s, objective {self.ObjectiveValue()}")
         self.solution_count += 1
         for empl, skills in self.data.items():
             print(f"{empl} : {[skill for skill, value in skills.items() if self.Value(value) == 1]}")
-        if self.solution_count >= 5:
-            self.StopSearch()
+        time_now = f"{time.time() - self.start_time}"
+        values_till_now = [f"{empl} : {[skill for skill, value in skills.items() if self.Value(value) == 1]}" for
+                           empl, skills in self.data.items()]
+        with open(f'output_{time_now}.txt', 'w') as f:
+            for string in values_till_now:
+                f.write(str(string) + '\n')
+        with open(f'values_{time_now}.txt', 'w') as f:
+            f.write(str(self.ObjectiveValue()))
+        needed_keyss = get_keys(weeks_input, teams_input)
+        x = {var: self.Value(self.all_vars[var]) == 1 for var in self.all_vars.keys()}
+        filtered_results = {key: int_var for key, int_var in x.items() if key in needed_keyss}
+        write_to_excel(filtered_results, teams_input, weeks_input, ["M", "A", "N"],
+                       f"hello_world_{time_now}.xlsx")
 
 def get_model(model: cp_model.CpModel, all_vars: dict[str, cp_model.IntVar], transitions: dict[str, cp_model.IntVar],
               night_transitions: dict[str, cp_model.IntVar], night_shift_distribution: dict[str, cp_model.IntVar], shift_distribution: dict[str, cp_model.IntVar], ten_days_a_row_cost: dict[str, list[cp_model.IntVar]], teams:list[Team], weeks: list[Week]) -> \
@@ -271,7 +294,7 @@ def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_
     add_one_employee_only_one_shift_per_day(model, weeks_plus_one, teams, all_vars)
     add_employee_cant_do_what_he_cant(model, weeks_plus_one, teams, all_vars)
     add_employees_can_only_work_with_team_members(model, weeks_plus_one, teams, all_vars)
-    # add_one_employee_only_works_five_days_a_week(model, weeks_plus_one, teams, all_vars)
+    add_one_employee_only_works_five_days_a_week(model, weeks_plus_one, teams, all_vars)
     add_one_employee_works_the_same_shift_a_week(model, weeks_plus_one, teams, all_vars)
     add_every_employee_have_two_shift_pause(model, weeks_plus_one, teams, all_vars)
     add_shift_cycle(model, weeks_plus_one, teams, all_vars, ["M", "A", "N"])
@@ -281,8 +304,8 @@ def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_
     # add_illness_manually(model, weeks, all_vars, "Team1_P5", [f"Week1_{day.name}" for day in weeks[0].days])
     #add_absence_manually(model, weeks, all_vars, "Team1_P6", [f"Week1_{day.name}" for day in weeks[0].days])
     #add_absence_manually(model, weeks, all_vars, "Team1_P6", [f"Week2_{day.name}" for day in weeks[0].days[:3]])
-    add_vacations(model, weeks, teams, all_vars, 2, 4)
-    add_illness(model, weeks, teams, all_vars, 1, 3)
+    add_vacations(model, weeks, teams, all_vars, 5, 7)
+    add_illness(model, weeks, teams, all_vars, 5, 5)
     add_vac_not_in_ill(model, weeks, teams, all_vars)
     add_employee_works_night_shifts_in_a_row(model, weeks, teams, all_vars, "N")
 
