@@ -329,7 +329,7 @@ def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 8
     solver.parameters.max_time_in_seconds = 1200.0
-    status = solver.Solve(model, MyAnalysisSolutionPrinter(skills_employee))
+    status = solver.Solve(model, MyAnalysisSolutionPrinter(skills_employee, all_vars))
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         if status == cp_model.OPTIMAL:
             print("OPTIMAL")
