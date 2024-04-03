@@ -549,7 +549,7 @@ def add_vacations(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
                                     for week in weeks for day in week.days
                                     for shift in day.shifts for needed_skill in shift.needed_skills]
             model.Add(sum(all_work_assignments) >= 1).OnlyEnforceIf(used)
-            model.Add(sum(all_work_assignments) == 1).OnlyEnforceIf(used.Not())
+            model.Add(sum(all_work_assignments) == 0).OnlyEnforceIf(used.Not())
             employee_vacation = []
             for week in weeks:
                 for day in week.days:
@@ -559,6 +559,7 @@ def add_vacations(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
                     model.Add(sum(assignments_during_vac) == 0).OnlyEnforceIf(all_vars[f"{week}_{day}_vac_{team}_{employee}_vac"])
 
             model.Add(sum(employee_vacation) == number_intervalls * number_vac_per_intervall).OnlyEnforceIf(used)
+            model.Add(sum(employee_vacation) == 0).OnlyEnforceIf(used.Not())
             vac_starts = []
             for i, vac in enumerate(employee_vacation[:-number_vac_per_intervall]):
                 vac_starts.append(model.NewBoolVar(f"vacation_starts_{i}_{team}_{employee}"))
@@ -568,6 +569,7 @@ def add_vacations(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
                         model.Add(vac_starts[j] == 0).OnlyEnforceIf(vac_starts[i])
                     model.Add(employee_vacation[j] == 1).OnlyEnforceIf(vac_starts[i])
             model.Add(sum(vac_starts) == number_intervalls).OnlyEnforceIf(used)
+            model.Add(sum(vac_starts) == 0).OnlyEnforceIf(used.Not())
 
 
 def add_illness(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], all_vars: dict[str, cp_model.IntVar], number_intervalls: int, number_ill_per_intervall: int):
@@ -578,7 +580,7 @@ def add_illness(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], a
                                     for week in weeks for day in week.days
                                     for shift in day.shifts for needed_skill in shift.needed_skills]
             model.Add(sum(all_work_assignments) >= 1).OnlyEnforceIf(used)
-            model.Add(sum(all_work_assignments) == 1).OnlyEnforceIf(used.Not())
+            model.Add(sum(all_work_assignments) == 0).OnlyEnforceIf(used.Not())
             employee_illness = []
             for week in weeks:
                 for day in week.days:
@@ -587,6 +589,7 @@ def add_illness(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], a
                                               for shift in day.shifts for needed_skill in shift.needed_skills]
                     model.Add(sum(assignments_during_ill) == 0).OnlyEnforceIf(all_vars[f"{week}_{day}_ill_{team}_{employee}_ill"])
             model.Add(sum(employee_illness) == number_intervalls * number_ill_per_intervall).OnlyEnforceIf(used)
+            model.Add(sum(employee_illness) == 0).OnlyEnforceIf(used.Not())
             ill_starts = []
             for i, vac in enumerate(employee_illness[:-number_ill_per_intervall]):
                 ill_starts.append(model.NewBoolVar(f"vacation_starts_{i}_{team}_{employee}"))
@@ -596,6 +599,7 @@ def add_illness(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], a
                         model.Add(ill_starts[j] == 0).OnlyEnforceIf(ill_starts[i])
                     model.Add(employee_illness[j] == 1).OnlyEnforceIf(ill_starts[i])
             model.Add(sum(ill_starts) == number_intervalls).OnlyEnforceIf(used)
+            model.Add(sum(ill_starts) == 0).OnlyEnforceIf(used.Not())
 
 def add_vac_not_in_ill(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], all_vars: dict[str, cp_model.IntVar]):
     for team in teams:
