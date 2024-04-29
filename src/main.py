@@ -20,9 +20,9 @@ from src.rule_builder import (add_every_shift_skill_is_assigned, add_one_employe
                               add_vac_not_in_ill, add_absence_manually, add_employee_works_night_shifts_in_a_row,
                               add_minimize_needed_skills, add_minimize_needed_employees)
 
-from model.Input_data_creator import get_teams_input_data, get_weeks_input_data
-from model.Team import Team
-from model.Week import Week
+from src.model.Input_data_creator import get_teams_input_data, get_weeks_input_data
+from src.model.Team import Team
+from src.model.Week import Week
 
 
 class MySolutionPrinter(CpSolverSolutionCallback):
