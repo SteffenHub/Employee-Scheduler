@@ -63,17 +63,17 @@ class MySolutionPrinter(CpSolverSolutionCallback):
             transitions_sum += transitions
             transitions_cost = self.Value(self.transition_cost[teamEmployee]) ** 2
             transitions_cost_sum += transitions_cost
-            night_transitions = int(self.Value(self.night_transitions[teamEmployee]) / 7)
+            night_transitions = int(self.Value(self.night_transitions[teamEmployee]) / 56)
             night_transition_sum += night_transitions
             night_transitions_cost = self.Value(self.night_transitions[teamEmployee]) ** 2
             night_transitions_cost_sum += night_transitions_cost
 
-            night_shift_distribution = int(self.Value(self.night_shift_distribution[teamEmployee]) / 7)
+            night_shift_distribution = int(self.Value(self.night_shift_distribution[teamEmployee]) / 10)
             night_shift_distribution_sum += night_shift_distribution
             night_shift_distribution_cost = self.Value(self.night_shift_distribution[teamEmployee]) ** 2
             night_shift_distribution_cost_sum += night_shift_distribution_cost
-            # TODO durch richtige zahl dividieren
-            shift_distribution = int(self.Value(self.shift_distribution[teamEmployee]) / 3)
+
+            shift_distribution = int(self.Value(self.shift_distribution[teamEmployee]) / 10)
             shift_distribution_sum += shift_distribution
             shift_distribution_cost = self.Value(self.shift_distribution[teamEmployee]) ** 2
             shift_distribution_cost_sum += shift_distribution_cost
@@ -86,7 +86,7 @@ class MySolutionPrinter(CpSolverSolutionCallback):
             for j in range(len(ten_days_a_row_cost_list)):
                 ten_days_a_row_cost_sum += ten_days_a_row_cost_list[j]
                 ten_days_a_row_cost += ten_days_a_row_cost_list[j]
-            sum_costs = transitions_cost + night_transitions_cost + night_shift_distribution_cost + ten_days_a_row_cost
+            sum_costs = transitions_cost + night_transitions_cost + night_shift_distribution_cost + ten_days_a_row_cost + shift_distribution_cost
             ten_days_a_row_str = ""
             for j in range(len(ten_days_a_row)):
                 ten_days_a_row_str += f"{ten_days_a_row[j]} "
