@@ -135,7 +135,7 @@ def read_from_excel(name_of_excel_file: str) -> list[str]:
         day_number = 0
         for shift, skill in zip(content[i][3:], content[i + 1][3:]):
             if shift is not None and skill is not None:
-                key = f"Week{math.ceil((day_number+1)/7)}_{days[day_number%7]}_{shift}_{team}_{name}_{skill}"
+                key = f"Week{math.ceil((day_number + 1) / 7)}_{days[day_number % 7]}_{shift}_{team}_{name}_{skill}"
                 result.append(key)
                 print(key)
             day_number += 1
