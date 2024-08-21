@@ -28,12 +28,17 @@ from src.model.Week import Week
 
 class CustomSolutionPrinter(CpSolverSolutionCallback):
 
-    def __init__(self, output: list[ConsoleOutput], all_vars: dict[str, cp_model.IntVar]):
+    def __init__(self, output: list[ConsoleOutput],
+                 all_vars: dict[str, cp_model.IntVar],
+                 teams: list[Team],
+                 weeks: list[Week]):
         CpSolverSolutionCallback.__init__(self)
         self.output = output
         self.solution_count = 0
         self.start_time = time.time()
         self.all_vars = all_vars
+        self.weeks = weeks
+        self.teams = teams
 
     def on_solution_callback(self) -> None:
         table = PrettyTable()
@@ -86,21 +91,26 @@ class CustomSolutionPrinter(CpSolverSolutionCallback):
         print(table)
 
         # write result to excel
-        needed_keys = get_keys(weeks_input, teams_input)
+        needed_keys = get_keys(self.weeks, self.teams)
         time_now = f"{time.time() - self.start_time}"
         solution = {var: self.Value(self.all_vars[var]) == 1 for var in self.all_vars.keys()}
         filtered_solution = {key: int_var for key, int_var in solution.items() if key in needed_keys}
-        write_to_excel(filtered_solution, teams_input, weeks_input, ["M", "A", "N"],
+        write_to_excel(filtered_solution, self.teams, self.weeks, ["M", "A", "N"],
                        f"scheduler_result_{time_now}.xlsx")
 
 
 class MyAnalysisSolutionPrinter(CpSolverSolutionCallback):
-    def __init__(self, data, all_vars):
+    def __init__(self, data,
+                 all_vars,
+                 teams: list[Team],
+                 weeks: list[Week]):
         CpSolverSolutionCallback.__init__(self)
         self.solution_count = 0
         self.start_time = time.time()
         self.data = data
         self.all_vars = all_vars
+        self.weeks = weeks
+        self.teams = teams
 
     def on_solution_callback(self) -> None:
         print(
@@ -116,10 +126,10 @@ class MyAnalysisSolutionPrinter(CpSolverSolutionCallback):
                 f.write(str(string) + '\n')
         with open(f'values_{time_now}.txt', 'w') as f:
             f.write(str(self.ObjectiveValue()))
-        needed_keyss = get_keys(weeks_input, teams_input)
+        needed_keyss = get_keys(self.weeks, self.teams)
         x = {var: self.Value(self.all_vars[var]) == 1 for var in self.all_vars.keys()}
         filtered_results = {key: int_var for key, int_var in x.items() if key in needed_keyss}
-        write_to_excel(filtered_results, teams_input, weeks_input, ["M", "A", "N"],
+        write_to_excel(filtered_results, self.teams, self.weeks, ["M", "A", "N"],
                        f"hello_world_{time_now}.xlsx")
 
 
@@ -128,7 +138,7 @@ def get_model(model: cp_model.CpModel, all_vars: dict[str, cp_model.IntVar], con
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 7
     solver.parameters.max_time_in_seconds = 1200.0
-    status = solver.Solve(model, CustomSolutionPrinter(console_output, all_vars))
+    status = solver.Solve(model, CustomSolutionPrinter(console_output, all_vars, teams, weeks))
     print("TIME LIMIT REACHED")
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
         if status == cp_model.OPTIMAL:
@@ -146,8 +156,11 @@ def get_model(model: cp_model.CpModel, all_vars: dict[str, cp_model.IntVar], con
         return None
 
 
-def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_keys: list[str]) -> dict[
-                                                                                                        str, bool] | None:
+def run(weeks: list[Week],
+        weeks_plus_one: list[Week],
+        teams: list[Team],
+        true_keys: list[str]) -> dict[str, bool] | None:
+    # initialize the CPModel
     model = cp_model.CpModel()
 
     # create all vars
@@ -155,6 +168,7 @@ def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_
     for key in get_keys(weeks_plus_one, teams):
         all_vars[key] = model.NewBoolVar(key)
 
+    # If a previous calculated shift schedule read set the read keys to true
     for key in true_keys:
         model.Add(all_vars[key] == 1)
 
@@ -179,14 +193,18 @@ def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_
     # add_employee_works_night_shifts_in_a_row(model, weeks, teams, all_vars, "N")
 
     # Soft constrains
-    minimize_var_work_in_row, transition_cost_per_employee = \
+    (minimize_var_work_in_row,
+     transition_cost_per_employee) = \
         add_employee_should_work_in_a_row(model, weeks, teams, all_vars, 3)
-    minimize_var_work_in_row_at_night, night_transition_cost_per_employee = \
+    (minimize_var_work_in_row_at_night,
+     night_transition_cost_per_employee) = \
         add_employee_should_work_night_shifts_in_a_row(model, weeks, teams, all_vars, 7 * 4 * 2, "N")
-    minimize_var_same_night_shift_amount_per_employee, night_shift_cost_per_employee = \
+    (minimize_var_same_night_shift_amount_per_employee,
+     night_shift_cost_per_employee) = \
         add_every_employee_should_do_same_amount_night_shifts(model, weeks, teams, all_vars, 10, "N")
-    minimize_var_same_shift_amount_per_employee, shift_cost_per_employee = add_every_employee_should_do_same_amount_of_shifts(
-        model, weeks, teams, all_vars, 10)
+    (minimize_var_same_shift_amount_per_employee,
+     shift_cost_per_employee) = \
+        add_every_employee_should_do_same_amount_of_shifts(model, weeks, teams, all_vars, 10)
     # add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
     minimize_five_days_a_row, five_days_a_row_cost_per_employee = add_one_employee_should_work_max_five_days_in_a_row(
         model, weeks, teams, all_vars, 10000)
@@ -195,6 +213,7 @@ def main(weeks: list[Week], weeks_plus_one: list[Week], teams: list[Team], true_
     # minimize_needed_empl = add_minimize_needed_employees(model, weeks, teams, all_vars, 100)
     # model.Minimize(minimize_needed_empl + minimize_skills_cost)
 
+    # Minimize the sum of all cost
     model.Minimize(minimize_var_work_in_row +
                    minimize_var_work_in_row_at_night +
                    minimize_var_same_night_shift_amount_per_employee +
@@ -230,21 +249,29 @@ def get_keys(weeks: list[Week], teams: list[Team]) -> list[str]:
     return keys
 
 
-if __name__ == "__main__":
-    filename = None  # 'hello_world.xlsx'
+def main(filename: str | None, how_many_days: int):
     if filename is not None:
         keys = read_from_excel(filename)
         highest_week_number = max([int(k.split('_')[0][4:]) for k in keys])
     else:
         keys = []
         highest_week_number = 0
+
     teams_input = get_teams_input_data()
-    weeks_input_plus_one = get_weeks_input_data(highest_week_number * 7 + 4 * 7 + 1)
-    weeks_input = get_weeks_input_data(highest_week_number * 7 + 4 * 7)
-    result = main(weeks=weeks_input, weeks_plus_one=weeks_input_plus_one, teams=teams_input, true_keys=keys)
+    weeks_input_plus_one = get_weeks_input_data(highest_week_number * 7 + how_many_days + 1)
+    weeks_input = get_weeks_input_data(highest_week_number * 7 + how_many_days)
+    result = run(weeks=weeks_input, weeks_plus_one=weeks_input_plus_one, teams=teams_input, true_keys=keys)
     needed_keys = get_keys(weeks_input, teams_input)
     filtered_result = {key: int_var for key, int_var in result.items() if key in needed_keys}
 
     if result is not None:
         write_to_excel(filtered_result, teams_input, weeks_input, ["M", "A", "N"],
                        filename if filename else "scheduler_result_final.xlsx")
+
+
+if __name__ == "__main__":
+    # If there exist a shift schedule from a previous calculation add its filename here
+    # If file = None than the calculation starts with day1, no previous shift schedule given
+    previous_calc_filename = None  # 'scheduler_result_final.xlsx'
+    days_to_calculate = 7 * 4  # 4 additional weeks to the previous calculation if previous_calc_file is not None
+    main(previous_calc_filename, days_to_calculate)
