@@ -138,11 +138,17 @@ class MyAnalysisSolutionPrinter(CpSolverSolutionCallback):
                        f"hello_world_{time_now}.xlsx")
 
 
-def get_model(model: cp_model.CpModel, all_vars: dict[str, cp_model.IntVar], console_output: list[ConsoleOutput],
-              teams: list[Team], weeks: list[Week], start_time: str) -> dict[str, bool] | None:
+def get_model(model: cp_model.CpModel,
+              all_vars: dict[str, cp_model.IntVar],
+              console_output: list[ConsoleOutput],
+              teams: list[Team],
+              weeks: list[Week],
+              start_time: str,
+              number_of_cores: int,
+              stop_calc_after: float) -> dict[str, bool] | None:
     solver = cp_model.CpSolver()
-    solver.parameters.num_search_workers = 7
-    solver.parameters.max_time_in_seconds = 1200.0
+    solver.parameters.num_search_workers = number_of_cores
+    solver.parameters.max_time_in_seconds = stop_calc_after
     status = solver.Solve(model, CustomSolutionPrinter(console_output, all_vars, teams, weeks, start_time))
     print("TIME LIMIT REACHED")
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
@@ -164,7 +170,9 @@ def get_model(model: cp_model.CpModel, all_vars: dict[str, cp_model.IntVar], con
 def run(weeks: list[Week],
         weeks_plus_one: list[Week],
         teams: list[Team],
-        true_keys: list[str]) -> tuple[dict[str, bool] | None, str]:
+        true_keys: list[str],
+        number_of_cores: int,
+        stop_calc_after: float) -> tuple[dict[str, bool] | None, str]:
     # initialize the CPModel
     model = cp_model.CpModel()
 
@@ -236,7 +244,10 @@ def run(weeks: list[Week],
                               ConsoleOutput(column_name="shift distribution", data=shift_cost_per_employee, cost=10),
                               ConsoleOutput(column_name="overtime", data=five_days_a_row_cost_per_employee,
                                             cost=10000)],
-                             teams, weeks, start_time)
+                             teams, weeks,
+                             start_time,
+                             number_of_cores,
+                             stop_calc_after)
     return model_result, start_time
 
 
@@ -255,7 +266,10 @@ def get_keys(weeks: list[Week], teams: list[Team]) -> list[str]:
     return keys
 
 
-def main(filename: str | None, how_many_days: int):
+def main(filename: str | None,
+         how_many_days: int,
+         number_of_cores: int,
+         stop_calc_after: float):
     if filename is not None:
         keys = read_from_excel(filename)
         highest_week_number = max([int(k.split('_')[0][4:]) for k in keys])
@@ -266,7 +280,12 @@ def main(filename: str | None, how_many_days: int):
     teams_input = get_teams_input_data()
     weeks_input_plus_one = get_weeks_input_data(highest_week_number * 7 + how_many_days + 1)
     weeks_input = get_weeks_input_data(highest_week_number * 7 + how_many_days)
-    result, start_time = run(weeks=weeks_input, weeks_plus_one=weeks_input_plus_one, teams=teams_input, true_keys=keys)
+    result, start_time = run(weeks=weeks_input,
+                             weeks_plus_one=weeks_input_plus_one,
+                             teams=teams_input,
+                             true_keys=keys,
+                             number_of_cores=number_of_cores,
+                             stop_calc_after=stop_calc_after)
     needed_keys = get_keys(weeks_input, teams_input)
     filtered_result = {key: int_var for key, int_var in result.items() if key in needed_keys}
 
@@ -280,5 +299,7 @@ if __name__ == "__main__":
     # If there exist a shift schedule from a previous calculation add its filename here
     # If file = None than the calculation starts with day1, no previous shift schedule given
     previous_calc_filename = None  # 'scheduler_result_final.xlsx'
+    use_number_of_cores: int = 8
+    stop_calculation_after: float = 1200.0
     days_to_calculate = 7 * 4  # 4 additional weeks to the previous calculation if previous_calc_file is not None
-    main(previous_calc_filename, days_to_calculate)
+    main(previous_calc_filename, days_to_calculate, use_number_of_cores, stop_calculation_after)
