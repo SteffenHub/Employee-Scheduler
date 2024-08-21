@@ -24,6 +24,7 @@ from src.rule_builder import (add_every_shift_skill_is_assigned, add_one_employe
 from src.model.Input_data_creator import get_teams_input_data, get_weeks_input_data
 from src.model.Team import Team
 from src.model.Week import Week
+from datetime import datetime
 
 
 class CustomSolutionPrinter(CpSolverSolutionCallback):
@@ -31,7 +32,8 @@ class CustomSolutionPrinter(CpSolverSolutionCallback):
     def __init__(self, output: list[ConsoleOutput],
                  all_vars: dict[str, cp_model.IntVar],
                  teams: list[Team],
-                 weeks: list[Week]):
+                 weeks: list[Week],
+                 start_time: str):
         CpSolverSolutionCallback.__init__(self)
         self.output = output
         self.solution_count = 0
@@ -39,6 +41,7 @@ class CustomSolutionPrinter(CpSolverSolutionCallback):
         self.all_vars = all_vars
         self.weeks = weeks
         self.teams = teams
+        self.start_date_and_time: str = start_time
 
     def on_solution_callback(self) -> None:
         table = PrettyTable()
@@ -96,6 +99,7 @@ class CustomSolutionPrinter(CpSolverSolutionCallback):
         solution = {var: self.Value(self.all_vars[var]) == 1 for var in self.all_vars.keys()}
         filtered_solution = {key: int_var for key, int_var in solution.items() if key in needed_keys}
         write_to_excel(filtered_solution, self.teams, self.weeks, ["M", "A", "N"],
+                       f"../output_data/start_on_{self.start_date_and_time}",
                        f"scheduler_result_{time_now}.xlsx")
 
 
@@ -130,15 +134,16 @@ class MyAnalysisSolutionPrinter(CpSolverSolutionCallback):
         x = {var: self.Value(self.all_vars[var]) == 1 for var in self.all_vars.keys()}
         filtered_results = {key: int_var for key, int_var in x.items() if key in needed_keyss}
         write_to_excel(filtered_results, self.teams, self.weeks, ["M", "A", "N"],
+                       "../",
                        f"hello_world_{time_now}.xlsx")
 
 
 def get_model(model: cp_model.CpModel, all_vars: dict[str, cp_model.IntVar], console_output: list[ConsoleOutput],
-              teams: list[Team], weeks: list[Week]) -> dict[str, bool] | None:
+              teams: list[Team], weeks: list[Week], start_time: str) -> dict[str, bool] | None:
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 7
     solver.parameters.max_time_in_seconds = 1200.0
-    status = solver.Solve(model, CustomSolutionPrinter(console_output, all_vars, teams, weeks))
+    status = solver.Solve(model, CustomSolutionPrinter(console_output, all_vars, teams, weeks, start_time))
     print("TIME LIMIT REACHED")
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
         if status == cp_model.OPTIMAL:
@@ -159,7 +164,7 @@ def get_model(model: cp_model.CpModel, all_vars: dict[str, cp_model.IntVar], con
 def run(weeks: list[Week],
         weeks_plus_one: list[Week],
         teams: list[Team],
-        true_keys: list[str]) -> dict[str, bool] | None:
+        true_keys: list[str]) -> tuple[dict[str, bool] | None, str]:
     # initialize the CPModel
     model = cp_model.CpModel()
 
@@ -221,6 +226,7 @@ def run(weeks: list[Week],
                    minimize_five_days_a_row)
 
     print("All Rules added. Start Solver")
+    start_time: str = datetime.now().strftime("%Y-%m-%d_at_time_%H-%M-%S")
     model_result = get_model(model, all_vars,
                              [ConsoleOutput(column_name="transition", data=transition_cost_per_employee, cost=3),
                               ConsoleOutput(column_name="night transition", data=night_transition_cost_per_employee,
@@ -230,8 +236,8 @@ def run(weeks: list[Week],
                               ConsoleOutput(column_name="shift distribution", data=shift_cost_per_employee, cost=10),
                               ConsoleOutput(column_name="overtime", data=five_days_a_row_cost_per_employee,
                                             cost=10000)],
-                             teams, weeks)
-    return model_result
+                             teams, weeks, start_time)
+    return model_result, start_time
 
 
 def get_keys(weeks: list[Week], teams: list[Team]) -> list[str]:
@@ -260,13 +266,14 @@ def main(filename: str | None, how_many_days: int):
     teams_input = get_teams_input_data()
     weeks_input_plus_one = get_weeks_input_data(highest_week_number * 7 + how_many_days + 1)
     weeks_input = get_weeks_input_data(highest_week_number * 7 + how_many_days)
-    result = run(weeks=weeks_input, weeks_plus_one=weeks_input_plus_one, teams=teams_input, true_keys=keys)
+    result, start_time = run(weeks=weeks_input, weeks_plus_one=weeks_input_plus_one, teams=teams_input, true_keys=keys)
     needed_keys = get_keys(weeks_input, teams_input)
     filtered_result = {key: int_var for key, int_var in result.items() if key in needed_keys}
 
     if result is not None:
         write_to_excel(filtered_result, teams_input, weeks_input, ["M", "A", "N"],
-                       filename if filename else "scheduler_result_final.xlsx")
+                       f"../output_data/start_on_{start_time}",
+                       "scheduler_result_final.xlsx")
 
 
 if __name__ == "__main__":

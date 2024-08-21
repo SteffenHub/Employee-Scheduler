@@ -1,4 +1,5 @@
 import math
+import os
 import re
 
 import openpyxl
@@ -9,7 +10,12 @@ from src.model.Team import Team
 from src.model.Week import Week
 
 
-def write_to_excel(model_result: dict[str, bool], teams: list[Team], weeks: list[Week], shift_names: list[str], name_of_excel_file: str):
+def write_to_excel(model_result: dict[str, bool],
+                   teams: list[Team],
+                   weeks: list[Week],
+                   shift_names: list[str],
+                   save_in_directory: str,
+                   name_of_excel_file: str):
     workbook = Workbook()
     sheet = workbook.active
     if len(shift_names) > 3:
@@ -102,7 +108,10 @@ def write_to_excel(model_result: dict[str, bool], teams: list[Team], weeks: list
             sheet[
                 f"{this_column}{this_row}"
             ].border = thin_border
-    workbook.save(filename=name_of_excel_file)
+
+    os.makedirs(save_in_directory, exist_ok=True)
+    full_path = os.path.join(save_in_directory, name_of_excel_file)
+    workbook.save(filename=full_path)
 
 
 def read_from_excel(name_of_excel_file: str) -> list[str]:
