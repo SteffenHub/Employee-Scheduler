@@ -49,12 +49,12 @@ class CustomSolutionPrinter(CpSolverSolutionCallback):
         print(f"Solution {self.solution_count}, time {time.time() - self.start_time}s")
 
         # create and set column names
-        fiel_names: list[str] = ["Team", "Employee"]
+        field_names: list[str] = ["Team", "Employee"]
         for output_item in self.output:
-            fiel_names.append(output_item.column_name)
-            fiel_names.append(f"{output_item.column_name} cost")
-        fiel_names.append("sum_costs")
-        table.field_names = fiel_names
+            field_names.append(output_item.column_name)
+            field_names.append(f"{output_item.column_name} cost")
+        field_names.append("sum_costs")
+        table.field_names = field_names
 
         # sum of all employees for each column(numbers in last row)
         sums_initial_columns: list[int] = [0 for _ in self.output]
@@ -130,9 +130,9 @@ class MyAnalysisSolutionPrinter(CpSolverSolutionCallback):
                 f.write(str(string) + '\n')
         with open(f'values_{time_now}.txt', 'w') as f:
             f.write(str(self.ObjectiveValue()))
-        needed_keyss = get_keys(self.weeks, self.teams)
+        needed_keys = get_keys(self.weeks, self.teams)
         x = {var: self.Value(self.all_vars[var]) == 1 for var in self.all_vars.keys()}
-        filtered_results = {key: int_var for key, int_var in x.items() if key in needed_keyss}
+        filtered_results = {key: int_var for key, int_var in x.items() if key in needed_keys}
         write_to_excel(filtered_results, self.teams, self.weeks, ["M", "A", "N"],
                        "../",
                        f"hello_world_{time_now}.xlsx")
@@ -221,7 +221,9 @@ def run(weeks: list[Week],
     # add_an_employee_should_do_the_same_job_a_week(model, weeks, teams, all_vars)
     minimize_five_days_a_row, five_days_a_row_cost_per_employee = add_one_employee_should_work_max_five_days_in_a_row(
         model, weeks, teams, all_vars, 10000)
-    # minimize_ten_days_a_row, ten_days_a_row_cost_per_employee = add_one_employee_should_work_max_ten_days_in_a_row(model, weeks, teams, all_vars, 10000)
+    # (minimize_ten_days_a_row,
+    # ten_days_a_row_cost_per_employee) = (
+    #    add_one_employee_should_work_max_ten_days_in_a_row(model, weeks, teams, all_vars, 10000))
     # skills_employee, minimize_skills_cost = add_minimize_needed_skills(model, weeks, teams, all_vars, 1)
     # minimize_needed_empl = add_minimize_needed_employees(model, weeks, teams, all_vars, 100)
     # model.Minimize(minimize_needed_empl + minimize_skills_cost)
