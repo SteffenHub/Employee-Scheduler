@@ -1,9 +1,8 @@
 # Employee-Scheduler
 
 This Code can create shift schedules automatically.  
-An Example of a generated result can be found in the section below. 
+An Example of a generated result can be found in the section below.  
 Google OR-Tools is used to calculate shift schedules.
-More Information about the Code structure can be found in the README.md of the src folder.
 
 # Example shift scheduler result
 
