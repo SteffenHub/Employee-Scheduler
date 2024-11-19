@@ -876,7 +876,7 @@ def add_one_employee_should_work_max_ten_days_in_a_row(model: cp_model.CpModel, 
     :type teams: list[Team]
     :param all_vars: Dictionary of all existing variables in the model.
     :type all_vars: dict[str, cp_model.IntVar]
-    :param cost: The cost penalty for each instance of violating the ten consecutive days constraint.
+    :param cost: The cost penalty for each instance of violating the ten consecutive days' constraint.
     :type cost: int
     :return: A tuple containing the sum of all penalty variables and a dictionary detailing the cost penalties
              per employee for ten consecutive days violations.
@@ -898,8 +898,7 @@ def add_one_employee_should_work_max_ten_days_in_a_row(model: cp_model.CpModel, 
                     model.Add(sum(possible_assignments) == 0).OnlyEnforceIf(works.Not())
                     work_days.append(works)
 
-            transitions = []
-            transitions.append(work_days[0])
+            transitions = [work_days[0]]
             # create transition list
             for i in range(0, len(work_days) - 1):
                 is_transition = model.NewBoolVar(f"help_bool_var_transition_{team}_{employee}_{i}_{i + 1}")
@@ -914,7 +913,7 @@ def add_one_employee_should_work_max_ten_days_in_a_row(model: cp_model.CpModel, 
                 enum_till_now = []
                 for j in range(0, i+1):
                     enum_till_now.append(transitions[j])
-                help_int = model.NewIntVar(0, 1000, f"int_var_help_wegweef_{team}_{employee}_{i}")
+                help_int = model.NewIntVar(0, 1000, f"int_var_help_ten_days_1_{team}_{employee}_{i}")
                 model.Add(help_int == sum(enum_till_now)).OnlyEnforceIf(work)
                 model.Add(help_int == 0).OnlyEnforceIf(work.Not())
                 works_in_row_enumerate.append(help_int)
@@ -927,8 +926,8 @@ def add_one_employee_should_work_max_ten_days_in_a_row(model: cp_model.CpModel, 
                     model.Add(works_in_row_enumerate[j] == i).OnlyEnforceIf(help_bool)
                     model.Add(works_in_row_enumerate[j] != i).OnlyEnforceIf(help_bool.Not())
                     y.append(help_bool)
-                overtime_int = model.NewIntVar(0, 10000, f"int_var_help_weergergweef_{team}_{employee}_{i}")
-                higher_than_five = model.NewBoolVar(f"help_bool_var_transition_ergerger_{team}_{employee}_{i}")
+                overtime_int = model.NewIntVar(0, 10000, f"int_var_help_ten_days_2_{team}_{employee}_{i}")
+                higher_than_five = model.NewBoolVar(f"help_bool_var_transition_ten_days_3_{team}_{employee}_{i}")
                 model.Add(sum(y) > 5).OnlyEnforceIf(higher_than_five)
                 model.Add(sum(y) <= 5).OnlyEnforceIf(higher_than_five.Not())
                 model.Add(overtime_int == sum(y) - 5).OnlyEnforceIf(higher_than_five)
@@ -950,7 +949,7 @@ def add_one_employee_should_work_max_ten_days_in_a_row(model: cp_model.CpModel, 
 
 
 
-def add_vacations(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], all_vars: dict[str, cp_model.IntVar], number_intervalls: int, number_vac_per_intervall: int):
+def add_vacations(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], all_vars: dict[str, cp_model.IntVar], number_intervals: int, number_vac_per_interval: int):
     """
     Adds vacation constraints to the given model for each employee in each team.
 
@@ -968,10 +967,10 @@ def add_vacations(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
     :type teams: list[Team]
     :param all_vars: A dictionary mapping variable names to the corresponding CP model variables.
     :type all_vars: dict[str, cp_model.IntVar]
-    :param number_intervalls: The number of vacation intervals each employee should have.
-    :type number_intervalls: int
-    :param number_vac_per_intervall: The number of vacation periods within each interval.
-    :type number_vac_per_intervall: int
+    :param number_intervals: The number of vacation intervals each employee should have.
+    :type number_intervals: int
+    :param number_vac_per_interval: The number of vacation periods within each interval.
+    :type number_vac_per_interval: int
     :return: None
     :rtype: NoneType
     """
@@ -991,21 +990,21 @@ def add_vacations(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
                                               for shift in day.shifts for needed_skill in shift.needed_skills]
                     model.Add(sum(assignments_during_vac) == 0).OnlyEnforceIf(all_vars[f"{week}_{day}_vac_{team}_{employee}_vac"])
 
-            model.Add(sum(employee_vacation) == number_intervalls * number_vac_per_intervall).OnlyEnforceIf(used)
+            model.Add(sum(employee_vacation) == number_intervals * number_vac_per_interval).OnlyEnforceIf(used)
             model.Add(sum(employee_vacation) == 0).OnlyEnforceIf(used.Not())
             vac_starts = []
-            for i, vac in enumerate(employee_vacation[:-number_vac_per_intervall]):
+            for i, vac in enumerate(employee_vacation[:-number_vac_per_interval]):
                 vac_starts.append(model.NewBoolVar(f"vacation_starts_{i}_{team}_{employee}"))
             for i, vac in enumerate(vac_starts):
-                for j in range(i, i + number_vac_per_intervall):
+                for j in range(i, i + number_vac_per_interval):
                     if i != j and j < len(vac_starts):
                         model.Add(vac_starts[j] == 0).OnlyEnforceIf(vac_starts[i])
                     model.Add(employee_vacation[j] == 1).OnlyEnforceIf(vac_starts[i])
-            model.Add(sum(vac_starts) == number_intervalls).OnlyEnforceIf(used)
+            model.Add(sum(vac_starts) == number_intervals).OnlyEnforceIf(used)
             model.Add(sum(vac_starts) == 0).OnlyEnforceIf(used.Not())
 
 
-def add_illness(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], all_vars: dict[str, cp_model.IntVar], number_intervalls: int, number_ill_per_intervall: int):
+def add_illness(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], all_vars: dict[str, cp_model.IntVar], number_intervals: int, number_ill_per_interval: int):
     """
     Add constraints to a CP model to simulate and manage employee illness over a
     certain number of intervals. This function ensures that employees are marked as
@@ -1020,10 +1019,10 @@ def add_illness(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], a
     :type teams: list[Team]
     :param all_vars: A dictionary of all CP variables used in the model
     :type all_vars: dict[str, cp_model.IntVar]
-    :param number_intervalls: The number of intervals for illness periods
-    :type number_intervalls: int
-    :param number_ill_per_intervall: The number of illness days per interval
-    :type number_ill_per_intervall: int
+    :param number_intervals: The number of intervals for illness periods
+    :type number_intervals: int
+    :param number_ill_per_interval: The number of illness days per interval
+    :type number_ill_per_interval: int
     :return: None
     :rtype: NoneType
     """
@@ -1042,17 +1041,17 @@ def add_illness(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], a
                     assignments_during_ill = [all_vars[f"{week}_{day}_{shift}_{team}_{employee}_{needed_skill}"]
                                               for shift in day.shifts for needed_skill in shift.needed_skills]
                     model.Add(sum(assignments_during_ill) == 0).OnlyEnforceIf(all_vars[f"{week}_{day}_ill_{team}_{employee}_ill"])
-            model.Add(sum(employee_illness) == number_intervalls * number_ill_per_intervall).OnlyEnforceIf(used)
+            model.Add(sum(employee_illness) == number_intervals * number_ill_per_interval).OnlyEnforceIf(used)
             model.Add(sum(employee_illness) == 0).OnlyEnforceIf(used.Not())
             ill_starts = []
-            for i, vac in enumerate(employee_illness[:-number_ill_per_intervall]):
+            for i, vac in enumerate(employee_illness[:-number_ill_per_interval]):
                 ill_starts.append(model.NewBoolVar(f"vacation_starts_{i}_{team}_{employee}"))
             for i, vac in enumerate(ill_starts):
-                for j in range(i, i + number_ill_per_intervall):
+                for j in range(i, i + number_ill_per_interval):
                     if i != j and j < len(ill_starts):
                         model.Add(ill_starts[j] == 0).OnlyEnforceIf(ill_starts[i])
                     model.Add(employee_illness[j] == 1).OnlyEnforceIf(ill_starts[i])
-            model.Add(sum(ill_starts) == number_intervalls).OnlyEnforceIf(used)
+            model.Add(sum(ill_starts) == number_intervals).OnlyEnforceIf(used)
             model.Add(sum(ill_starts) == 0).OnlyEnforceIf(used.Not())
 
 def add_vac_not_in_ill(model: cp_model.CpModel, weeks: list[Week], teams: list[Team], all_vars: dict[str, cp_model.IntVar]):
@@ -1081,8 +1080,8 @@ def add_vac_not_in_ill(model: cp_model.CpModel, weeks: list[Week], teams: list[T
 
 
 def add_minimize_needed_skills(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
-                                                        all_vars: dict[str, cp_model.IntVar], cost: int) \
-        -> tuple[dict[str, dict[str, cp_model.BoolVar]], cp_model.IntVar]:
+                                                        all_vars: dict[str, cp_model.IntVar]) \
+        -> tuple[dict[str, dict[str, IntVar]], int]:
     """
     Adds constraints to minimize the number of needed skills per employee and returns a
     dictionary mapping employees' skills and a variable representing the total number of
@@ -1097,11 +1096,11 @@ def add_minimize_needed_skills(model: cp_model.CpModel, weeks: list[Week], teams
     :param all_vars: Dictionary mapping variable names to their corresponding CP model
                      integer variables.
     :type all_vars: dict[str, cp_model.IntVar]
-    :param cost: Cost associated with a shift without all needed skills.
-    :type cost: int
+    #:param cost: Cost associated with a shift without all needed skills.
+    #:type cost: int
     :return: A dictionary with employees and their skills and an integer variable
              representing the sum of skills minimization.
-    :rtype: tuple[dict[str, dict[str, cp_model.BoolVar]], cp_model.IntVar]
+    :rtype: tuple[dict[str, dict[str, cp_model.IntVar]], int]
     """
     skills_employee: dict[str, dict[str, cp_model.IntVar]] = {}
     for team in teams:
@@ -1137,7 +1136,7 @@ def add_minimize_needed_skills(model: cp_model.CpModel, weeks: list[Week], teams
 
 
 def add_minimize_needed_employees(model: cp_model.CpModel, weeks: list[Week], teams: list[Team],
-                                  all_vars: dict[str, cp_model.IntVar], cost: int) -> cp_model.LinearExpression:
+                                  all_vars: dict[str, cp_model.IntVar], cost: int) -> int:
     """
     Adds constraints to the model to minimize the number of needed employees who do not have fixed
     skills by creating a sum of boolean variables, indicating whether each employee is needed for any
@@ -1155,7 +1154,7 @@ def add_minimize_needed_employees(model: cp_model.CpModel, weeks: list[Week], te
     :param cost: The cost associated with needing an employee.
     :type cost: int
     :return: The sum of the minimized boolean expression indicating the number of needed employees.
-    :rtype: cp_model.LinearExpression
+    :rtype: int
     """
     minimize_list = []
     for team in teams:
