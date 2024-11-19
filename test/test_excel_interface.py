@@ -1,8 +1,8 @@
 import os
 from unittest import TestCase
 
+from src.excel_interface import write_to_excel, read_from_excel
 from src.model.Input_data_creator import get_teams_input_data, get_weeks_input_data
-from src.Excel_interface import write_to_excel, read_from_excel
 
 
 class TestReadFromExcel(TestCase):
@@ -85,11 +85,13 @@ class TestReadFromExcel(TestCase):
             "Week2_Th_N_Team3_P34_H:M3": True,
         }
 
-        write_to_excel(model_result, teams, weeks, ["M", "A", "N"], name_of_excel_file)
+        write_to_excel(model_result, teams, weeks, ["M", "A", "N"], name_of_excel_file=name_of_excel_file, save_in_directory="../test")
 
-        actual = read_from_excel(name_of_excel_file)
+        actual = read_from_excel("../test/" + name_of_excel_file)
         if os.path.isfile(name_of_excel_file):
             os.remove(name_of_excel_file)
+        else:
+            print(f"test file cant be removed: ../test/{name_of_excel_file}")
 
         expected = [key for key in model_result.keys() if model_result[key] is True]
 
