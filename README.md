@@ -18,10 +18,28 @@ The third column shows the skills that each employee can take on
 The remaining columns show the shift and task assignments. The shift that needs to be taken on is always listed first and then   
 the task below.
 
-# Needed Software
 
-This Code uses some external Software:
-* Google OR-Tools: pip install ortools
-* Prettytable: pip install prettytable
+# Run the Code
+
+Needed Packages:  
+
+* Google OR-Tools
+    * pip install ortools
+    * needed to use the CP-Solver
+* Prettytable
+    * pip install prettytable
+    * needed to print solutions to the console
 * openpyxl: pip install openpyxl
+    * pip install openpyxl
+    * needed to read and write Excel files
+
+Install with:
+```sh
+pip install -r requirements.txt
+```
+Alternatively, you can install the package with:
+```sh
+pip install ortools prettytable openpyxl
+```
+You can find the entry point in src/main.py
 
