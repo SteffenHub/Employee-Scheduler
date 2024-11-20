@@ -6,7 +6,7 @@ Google OR-Tools is used to calculate shift schedules.
 
 # Example shift scheduler result
 
-![Example Scheduler Result](data/example_scheduler_result.png)
+![scheduler](data/scheduler.gif)
 
 Every employee is in a team.  
 Employees in a team are not allowed to work with employees from other teams, this creates a shift change.  
