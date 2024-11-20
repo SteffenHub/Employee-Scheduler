@@ -55,6 +55,37 @@ you should use the console output to optimize this values see [Understanding Out
 
 ![Scheduler result](data/example_scheduler_result.png)
 
+This is a generated shift schedule.  
+in the 2 column are the names of the employees the 1 column shows in which team an employee is and the 3 column shows
+which skills an employee have.    
+Following the employee row shows on which day in which shift this employee should work M = Morning, Morning shift, A = Afternoon, Late shift, N = Night, Night shift.   
+Under the shift you can see which skills this employee should do in this shift.
+
+![Console Output](data/console_output.png)
+
+This is the console output for the shift schedule seen before.  
+At the Top you see it is the 447th found solution. The Cp-Solver will find valid schedules each better than the schedule before.  
+This table shows the current cost values for the Soft-Constraints.
+For example the column sh distr shows how many shifts each employee is assigned to. In the next column you see the cost for this rule.
+Each cost ist calculated with number_of_assigned_shifts * shift_distribution_cost^2.
+or generally x * x_cost^2.  
+All costs are added up and saved to a variable this variable will be minimized by the CP-Solver.
+
+# Runtime 
+
+![Objective Value](data/objective_value.png)
+This graph shows the time related to the objective value.  
+The objective value is the sum of all cost for each Soft-Constraint.  
+You can see that the calculation takes some time. After about 9 hours the solver found a good solution that can be used.  
+The runtime can be drastically dropped if you don't use that much Soft-Constraints.  
+Based on previous calculations, the runtime for a schedule with no Soft-Constraint take about 1 to 5 minutes.  
+A calculation with one Soft-Constraint took about 10 to 30 minutes.
+You have to build your own experience in runtime for you own schedule problem. Only the given dataset in input_data_creator.py was tested.  
+We have observed that the more Hard-Constraints and the fewer Soft-Constraints are used, the better the runtime.
+
+![Objective Value 4 Months](data/objective_value_four_months.png)
+This graph shows the runtime for 4 consecutive months.
+So one month was calculated, based on this plan the second month was generated and so on.
 
 # Run the Code
 
