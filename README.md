@@ -104,6 +104,7 @@ With * marked rules are used for the calculations in the shown example schedules
 This is a generated shift schedule.  
 in the 2 column are the names of the employees the 1 column shows in which team an employee is and the 3 column shows
 which skills an employee have.    
+Shift manager are printed in bold.
 Following the employee row shows on which day in which shift this employee should work M = Morning, Morning shift, A = Afternoon, Late shift, N = Night, Night shift.   
 Under the shift you can see which skills this employee should do in this shift.
 
